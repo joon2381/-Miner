@@ -65,7 +65,7 @@ def delete_ad(driver: webdriver.Chrome) -> None :
         driver.implicitly_wait(100)
     except Exception as e :
         print(f"{e} : pop-up ad_close_button not found or cannot interact")
-        pass
+        raise Exception(e)
 
 def watcha_open_page(driver: webdriver.Chrome) -> None :
     try :
@@ -84,11 +84,15 @@ def watcha_open_page(driver: webdriver.Chrome) -> None :
         driver.find_element(By.CSS_SELECTOR,'a[href="https://pedia.watcha.com/"]').click()
         time.sleep(1)
 
-        # 탭전환
-        driver.switch_to.window(driver.window_handles[-1])
+        # 현재 탭(네이버) 닫기
+        driver.close()
+        driver.implicitly_wait(100)
+
+        # 탭전환(왓챠피디아)
+        driver.switch_to.window(driver.window_handles[0])
     except Exception as e:
         print(f"{e} : watcha_open_page element not found or cannot interact")
-        pass
+        raise Exception(e)
 
 def watcha_login(driver: webdriver.Chrome, USER_ID: str, USER_PWD: str) -> None :
     # 로그인
@@ -110,7 +114,7 @@ def watcha_login(driver: webdriver.Chrome, USER_ID: str, USER_PWD: str) -> None 
         time.sleep(1)
     except Exception as e :
         print(f"{e} : watcha_login element not found or cannot interact")
-        pass
+        raise Exception(e)
     
 
 def watcha_search_movie(driver: webdriver.Chrome, title: str) -> str|None :
@@ -135,7 +139,7 @@ def watcha_search_movie(driver: webdriver.Chrome, title: str) -> str|None :
         return YEAR
     except Exception as e :
         print(f"{e} : watcha_search_movie element not found or cannot interact")
-        pass
+        raise Exception(e)
 
 
 def watcha_open_reviews(driver: webdriver.Chrome) -> None :
@@ -147,7 +151,7 @@ def watcha_open_reviews(driver: webdriver.Chrome) -> None :
         driver.implicitly_wait(100)
     except Exception as e:
         print(f"{e} : watcha_open_reviews element not found or cannot interact")
-        pass
+        raise Exception(e)
 
 def watcha_load_reviews(driver: webdriver.Chrome) -> None :
     try :
@@ -163,7 +167,7 @@ def watcha_load_reviews(driver: webdriver.Chrome) -> None :
             time.sleep(0.5)
     except Exception as e:
         print(f"{e} : watcha_load_reviews element not found or cannot interact")
-        pass
+        raise Exception(e)
 
 def watcha_extract_reviews(driver: webdriver.Chrome) -> pd.DataFrame|None :
     # 리뷰 작성자 및 내용 추출
@@ -194,7 +198,7 @@ def watcha_extract_reviews(driver: webdriver.Chrome) -> pd.DataFrame|None :
         return df
     except Exception as e:
         print(f"{e} : watcha_extract_reviews element not found or cannot interact")
-        pass
+        raise Exception(e)
 
 # 왓챠피디아 아이디
 USER_ID = "lgr9603@kangwon.ac.kr"
@@ -206,7 +210,7 @@ USER_PWD = "lgr2618409!"
 영화명을 검색한 뒤 가장 처음 검색 결과로 나온 영화의 리뷰를 크롤링하므로 영화 제목의 오탈자에 주의할 것
 """
 # MOVIE_TITLE = "폭싹 속았수다"
-# MOVIE_TITLE_EN = "When Life Gives You Tangerines"
+# MOVIE_TITLE_EN = "WhenLifeGivesYouTangerines"
 
 MOVIE_TITLE_LIST = ["폭싹 속았수다"]
 MOVIE_TITLE_EN_LIST = ["WhenLifeGivesYouTangerines"]
@@ -214,23 +218,28 @@ MOVIE_TITLE_EN_LIST = ["WhenLifeGivesYouTangerines"]
 driver = webdriver.Chrome()
 
 for MOVIE_TITLE, MOVIE_TITLE_EN in tqdm(zip(MOVIE_TITLE_LIST, MOVIE_TITLE_EN_LIST), desc="Total Progress", mininterval=10, total=len(MOVIE_TITLE_LIST)) :
-    watcha_open_page(driver)
+    try :
+        watcha_open_page(driver)
 
-    watcha_login(driver, USER_ID, USER_PWD)
+        watcha_login(driver, USER_ID, USER_PWD)
 
-    MOVIE_YEAR = watcha_search_movie(driver, MOVIE_TITLE)
+        MOVIE_YEAR = watcha_search_movie(driver, MOVIE_TITLE)
 
-    watcha_open_reviews(driver)
+        watcha_open_reviews(driver)
 
-    watcha_load_reviews(driver)
+        watcha_load_reviews(driver)
 
-    df = watcha_extract_reviews(driver)
+        df = watcha_extract_reviews(driver)
 
-    print(df)
-    print(get_word_frequencies(df["review"], top_n=20))
-    print(konlpy(df["review"], top_n=20))
+        print(df)
+        print(get_word_frequencies(df["review"], top_n=20))
+        print(konlpy(df["review"], top_n=20))
 
-    df.to_csv(f"watcha_korean_{MOVIE_TITLE_EN}_reviews_minimal.csv", index=False)
+        df.to_csv(f"watcha_korean_{MOVIE_TITLE_EN}_reviews_minimal.csv", index=False)
+
+    except Exception as e:
+        print(f"Error processing movie {MOVIE_TITLE_EN} : {e}")
+        continue
 
 # Wait for user input for termination
 input("Press Enter to terminate...")
