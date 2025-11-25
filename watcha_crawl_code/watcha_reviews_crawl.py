@@ -249,7 +249,7 @@ for MOVIE_TITLE, MOVIE_TITLE_EN in zip(MOVIE_TITLE_LIST, MOVIE_TITLE_EN_LIST) :
         # print(get_word_frequencies(df["review"], top_n=20))
         # print(konlpy(df["review"], top_n=20))
 
-        df.to_csv(f"watcha_korean_{MOVIE_TITLE_EN}_reviews_minimal.csv", index=False)
+        df.to_csv(f"./watcha_reviews_csv/watcha_korean_{MOVIE_TITLE_EN}_reviews_minimal.csv", index=False)
 
     except Exception as e:
         print(f"Error processing movie {MOVIE_TITLE_EN} : {e}")
@@ -261,7 +261,8 @@ driver.quit()
 
 #TODO: 영화 제목을 리스트로 구성, 현재 main 부분을 함수화하여 for문으로 여러 영화 크롤링 가능하게 하기 **DONE**
 #TODO: CSS Selector 예외처리 및 각 선택자 변수지정 **DONE**
-#TODO: 리뷰 내용 중 비언어적 문자(ex: emoji) 삭제 및 리뷰 내용의 길이에 따라 필터링 기능 추가하기
+#TODO: 리뷰 내용 중 비언어적 문자(ex: emoji) 삭제 
+#TODO: 리뷰 내용의 길이에 따라 필터링 기능 추가하기
 #TODO: 리뷰에 스포일러 방지가 있는 경우 텍스트가 표시되지 않음. 이 경우 스포일러 방지 해제 또는 크롤링에서 제외하기
 #TODO: 영화별로 크롤링 결과를 다른 파일에 저장하고, 각 파일명에 영화 제목 포함시키기 **DONE**
 #TODO: 가능하다면 리뷰 작성 일자도 크롤링하기
