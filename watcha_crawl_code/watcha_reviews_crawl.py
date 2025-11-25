@@ -3,6 +3,7 @@ import time, re
 import pandas as pd
 
 from collections import Counter
+from tqdm import tqdm
 
 from selenium import webdriver
 from selenium.webdriver.common.keys import Keys
@@ -152,7 +153,7 @@ def watcha_extract_reviews(driver: webdriver.Chrome) -> pd.DataFrame :
 
     # pandas dataframe
     data = []
-    for user, rev, rat in zip(reviewers, reviews, rating):
+    for user, rev, rat in tqdm(zip(reviewers, reviews, rating), desc="Constructing DataFrame", mininterval=1):
         username = user.text
         review_text = rev.text.replace("\n"," ")
         review_len = len(review_text)
@@ -200,5 +201,6 @@ input("Press Enter to terminate...")
 driver.quit()
 
 #TODO: 영화 제목을 리스트로 구성, 현재 main 부분을 함수화하여 for문으로 여러 영화 크롤링 가능하게 하기
+#TODO: 리뷰 내용 중 비언어적 문자(ex: emoji) 삭제 및 리뷰 내용의 길이에 따라 필터링 기능 추가하기
 #TODO: 영화별로 크롤링 결과를 다른 파일에 저장하고, 각 파일명에 영화 제목 포함시키기
 #TODO: 가능하다면 리뷰 작성 일자도 크롤링하기
