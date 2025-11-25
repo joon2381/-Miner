@@ -219,7 +219,7 @@ ex) "오징어게임" vs "오징어 게임 시즌 1"  **띄어쓰기 및 시즌 
 # MOVIE_TITLE_EN = "WhenLifeGivesYouTangerines"
 
 MOVIE_TITLE_LIST = ["폭싹 속았수다", "오징어 게임 시즌 1"]
-MOVIE_TITLE_EN_LIST = ["WhenLifeGivesYouTangerines", "SquidGameSeason1"]
+MOVIE_TITLE_EN_LIST = ["When Life Gives You Tangerines", "Squid Game Season 1"]
 
 driver = webdriver.Chrome()
 
@@ -249,7 +249,7 @@ for MOVIE_TITLE, MOVIE_TITLE_EN in zip(MOVIE_TITLE_LIST, MOVIE_TITLE_EN_LIST) :
         # print(get_word_frequencies(df["review"], top_n=20))
         # print(konlpy(df["review"], top_n=20))
 
-        df.to_csv(f"./watcha_reviews_csv/watcha_korean_{MOVIE_TITLE_EN}_reviews_minimal.csv", index=False)
+        df.to_csv(f"./watcha_reviews_csv/watcha_korean_{MOVIE_TITLE_EN.replace(' ', '')}_reviews_minimal.csv", index=False)
 
     except Exception as e:
         print(f"Error processing movie {MOVIE_TITLE_EN} : {e}")
