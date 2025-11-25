@@ -67,31 +67,35 @@ def delete_ad(driver: webdriver.Chrome) -> None :
         print(f"{e} : pop-up ad_close_button not found or cannot interact")
         raise Exception(e)
 
+def initial_setup(driver: webdriver.Chrome) -> None :
+    """
+    브라우저 초기 설정
+    1. 빈 페이지 열기
+    2. 창 최대화
+    """
+    try :
+        # 브라우저 초기 설정
+        driver.get("about:blank")
+        driver.maximize_window()
+        driver.implicitly_wait(100)
+    except Exception as e :
+        print(f"{e} : initial_setup error")
+        raise Exception(e)
+
 def watcha_open_page(driver: webdriver.Chrome) -> None :
     try :
-        # 크롬 드라이버로 네이버 열기
-        URL = 'https://naver.com'
-        driver.get(url=URL)
+        # 새 창 열기(왓챠피디아)
+        driver.execute_script("window.open('https://pedia.watcha.com/');")
         driver.implicitly_wait(100)
 
-        # 네이버에서 왓챠피디아 입력해서 들어가기
-        search = driver.find_element(By.CSS_SELECTOR, '#query')
-        search_content = "왓챠피디아\n"
-        search.send_keys(search_content)
-        # driver.find_element(By.CSS_SELECTOR, 'button.btn_search').click()
-        driver.implicitly_wait(100)
-        time.sleep(1)
-        driver.find_element(By.CSS_SELECTOR,'a[href="https://pedia.watcha.com/"]').click()
-        time.sleep(1)
-
-        # 현재 탭(네이버) 닫기
+        # 현재 탭(초기 혹은 이전 탭) 닫기
         driver.close()
         driver.implicitly_wait(100)
 
         # 탭전환(왓챠피디아)
         driver.switch_to.window(driver.window_handles[0])
     except Exception as e:
-        print(f"{e} : watcha_open_page element not found or cannot interact")
+        print(f"{e} : watcha_open_page invalid or cannot interact")
         raise Exception(e)
 
 def watcha_login(driver: webdriver.Chrome, USER_ID: str, USER_PWD: str) -> None :
@@ -132,6 +136,7 @@ def watcha_search_movie(driver: webdriver.Chrome, title: str) -> str|None :
         YEAR = re.findall(r'\d{4}', year_info)[0]
 
         # 첫 번째 검색결과 클릭하기
+        # body > main > div:nth-of-type(1) > section > section > div:nth-of-type(2) > div:nth-child(1) > section > section:nth-of-type(2) > div:nth-of-child(1) > ul > li:nth-child(1) > a
         movie_page = driver.find_element(By.CSS_SELECTOR,f'a[title="{title}"]')
         movie_page.click()
         driver.implicitly_wait(100)
@@ -158,9 +163,9 @@ def watcha_load_reviews(driver: webdriver.Chrome) -> None :
         body = driver.find_element(By.CSS_SELECTOR, 'body')
 
         # 화면 스크롤 횟수 (100회 설정 시 약 1750개 리뷰 로드, 페이지 메모리 1.1GB 정도 사용)
-        COUNT = 100
+        COUNT = 10
 
-        for i in range(COUNT) :
+        for i in tqdm(range(COUNT), desc=f"Loading Reviews : {MOVIE_TITLE}", mininterval=10, total=COUNT) :
             # body 태그에 END 키를 입력하는 것으로 페이지 최하단으로 스크롤
             body.send_keys(Keys.END)
             # 원활한 페이지 로딩을 위한 멈춤
@@ -207,21 +212,27 @@ USER_PWD = "lgr2618409!"
 # 검색할 영화명
 """
 ** 주의점 **
-영화명을 검색한 뒤 가장 처음 검색 결과로 나온 영화의 리뷰를 크롤링하므로 영화 제목의 오탈자에 주의할 것
+영화명을 검색한 뒤 제목이 완전히 동일한 영화를 크롤링하므로 영화 제목에 오탈자가 완전히 없어야 함.(띄어쓰기 포함)
+ex) "오징어게임" vs "오징어 게임 시즌 1"  **띄어쓰기 및 시즌 주의**
 """
 # MOVIE_TITLE = "폭싹 속았수다"
 # MOVIE_TITLE_EN = "WhenLifeGivesYouTangerines"
 
-MOVIE_TITLE_LIST = ["폭싹 속았수다"]
-MOVIE_TITLE_EN_LIST = ["WhenLifeGivesYouTangerines"]
+MOVIE_TITLE_LIST = ["폭싹 속았수다", "오징어 게임 시즌 1"]
+MOVIE_TITLE_EN_LIST = ["WhenLifeGivesYouTangerines", "SquidGameSeason1"]
 
 driver = webdriver.Chrome()
 
-for MOVIE_TITLE, MOVIE_TITLE_EN in tqdm(zip(MOVIE_TITLE_LIST, MOVIE_TITLE_EN_LIST), desc="Total Progress", mininterval=10, total=len(MOVIE_TITLE_LIST)) :
+# 브라우저 초기 설정
+initial_setup(driver)
+
+watcha_open_page(driver)
+
+watcha_login(driver, USER_ID, USER_PWD)
+
+for MOVIE_TITLE, MOVIE_TITLE_EN in zip(MOVIE_TITLE_LIST, MOVIE_TITLE_EN_LIST) :
     try :
         watcha_open_page(driver)
-
-        watcha_login(driver, USER_ID, USER_PWD)
 
         MOVIE_YEAR = watcha_search_movie(driver, MOVIE_TITLE)
 
@@ -231,9 +242,12 @@ for MOVIE_TITLE, MOVIE_TITLE_EN in tqdm(zip(MOVIE_TITLE_LIST, MOVIE_TITLE_EN_LIS
 
         df = watcha_extract_reviews(driver)
 
-        print(df)
-        print(get_word_frequencies(df["review"], top_n=20))
-        print(konlpy(df["review"], top_n=20))
+        # print DataFrame preview **FOR DEBUGGING**
+        # print(df)
+
+        # Code Section for first presentation
+        # print(get_word_frequencies(df["review"], top_n=20))
+        # print(konlpy(df["review"], top_n=20))
 
         df.to_csv(f"watcha_korean_{MOVIE_TITLE_EN}_reviews_minimal.csv", index=False)
 
@@ -245,9 +259,9 @@ for MOVIE_TITLE, MOVIE_TITLE_EN in tqdm(zip(MOVIE_TITLE_LIST, MOVIE_TITLE_EN_LIS
 input("Press Enter to terminate...")
 driver.quit()
 
-#TODO: 영화 제목을 리스트로 구성, 현재 main 부분을 함수화하여 for문으로 여러 영화 크롤링 가능하게 하기 **NOT DONE YET**
+#TODO: 영화 제목을 리스트로 구성, 현재 main 부분을 함수화하여 for문으로 여러 영화 크롤링 가능하게 하기 **DONE**
 #TODO: CSS Selector 예외처리 및 각 선택자 변수지정 **DONE**
 #TODO: 리뷰 내용 중 비언어적 문자(ex: emoji) 삭제 및 리뷰 내용의 길이에 따라 필터링 기능 추가하기
 #TODO: 리뷰에 스포일러 방지가 있는 경우 텍스트가 표시되지 않음. 이 경우 스포일러 방지 해제 또는 크롤링에서 제외하기
-#TODO: 영화별로 크롤링 결과를 다른 파일에 저장하고, 각 파일명에 영화 제목 포함시키기
+#TODO: 영화별로 크롤링 결과를 다른 파일에 저장하고, 각 파일명에 영화 제목 포함시키기 **DONE**
 #TODO: 가능하다면 리뷰 작성 일자도 크롤링하기
