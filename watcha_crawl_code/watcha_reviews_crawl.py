@@ -74,6 +74,7 @@ def delete_ad(driver: webdriver.Chrome) -> None :
         print(f"{e} : pop-up ad_close_button not found or cannot interact")
         raise Exception(e)
 
+
 def initial_setup(driver: webdriver.Chrome) -> None :
     """
     브라우저 초기 설정
@@ -88,6 +89,7 @@ def initial_setup(driver: webdriver.Chrome) -> None :
     except Exception as e :
         print(f"{e} : initial_setup error")
         raise Exception(e)
+
 
 def watcha_open_page(driver: webdriver.Chrome) -> None :
     """
@@ -110,6 +112,7 @@ def watcha_open_page(driver: webdriver.Chrome) -> None :
     except Exception as e:
         print(f"{e} : watcha_open_page invalid or cannot interact")
         raise Exception(e)
+
 
 def watcha_login(driver: webdriver.Chrome, USER_ID: str, USER_PWD: str) -> None :
     # 로그인
@@ -180,6 +183,7 @@ def watcha_open_reviews(driver: webdriver.Chrome) -> None :
         print(f"{e} : watcha_open_reviews element not found or cannot interact")
         raise Exception(e)
 
+
 def watcha_load_reviews(driver: webdriver.Chrome) -> None :
     try :
         body = driver.find_element(By.CSS_SELECTOR, 'body')
@@ -196,6 +200,7 @@ def watcha_load_reviews(driver: webdriver.Chrome) -> None :
     except Exception as e:
         print(f"{e} : watcha_load_reviews element not found or cannot interact")
         raise Exception(e)
+
 
 def watcha_extract_reviews(driver: webdriver.Chrome) -> pd.DataFrame|None :
     # 리뷰 작성자 및 내용 추출
@@ -239,9 +244,20 @@ def watcha_extract_reviews(driver: webdriver.Chrome) -> pd.DataFrame|None :
     except Exception as e:
         print(f"{e} : watcha_extract_reviews element not found or cannot interact")
         raise Exception(e)
-    
+
+
 def df_filter_spoiler_reviews(df: pd.DataFrame) -> None :
     # 리뷰 DataFrame에서 스포일러방지 리뷰 필터링
+    """
+    인자로 받은 DataFrame 내에서 'review' col의 값이
+    "스포일러가 있어요!!보기" 인 row를 찾아 삭제.
+
+    df.drop() method의 parameter inplace가 True로 설정되어 있어
+    함수의 인자로 전달받은 df의 원본이 수정됨.
+
+    df의 원본을 유지하고 싶은 경우 df.drop() method의 parameter inplace를 False로 변경하고
+    try 문 내 return df 코드를 활성화. 자세한 사항은 해당 코드 내 주석 참고.
+    """
     try :
         spoiler_df = df[df['review'] == "스포일러가 있어요!!보기"]
 
@@ -256,6 +272,7 @@ def df_filter_spoiler_reviews(df: pd.DataFrame) -> None :
     except Exception as e :
         print(f"{e} : df_filter_spoiler_reviews index not found or cannot delete")
         raise Exception(e)
+
 
 # 왓챠피디아 아이디
 USER_ID = "lgr9603@kangwon.ac.kr"
