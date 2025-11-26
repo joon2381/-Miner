@@ -184,7 +184,7 @@ def watcha_load_reviews(driver: webdriver.Chrome) -> None :
     try :
         body = driver.find_element(By.CSS_SELECTOR, 'body')
 
-        # 화면 스크롤 횟수 (100회 설정 시 약 1750개 리뷰 로드, 페이지 메모리 1.1GB 정도 사용)
+        # 화면 스크롤 횟수 (150회 설정 시 약 2600개 리뷰 로드, 100회 때 페이지 메모리 1.1GB 정도 썼는데 150회는 모르겠고 꽤 많이 사용)
         COUNT = 150
         
         for i in tqdm(range(COUNT), desc=f"Loading Reviews : {MOVIE_TITLE}", mininterval=1, total=COUNT) :
@@ -316,6 +316,6 @@ driver.quit()
 #TODO: CSS Selector 예외처리 및 각 선택자 변수지정 **DONE**
 #TODO: 리뷰 내용 중 비언어적 문자(ex: emoji) 삭제 **DONE**
 #TODO: 리뷰 내용의 길이에 따라 필터링 기능 추가하기 
-#TODO: 리뷰에 스포일러 방지가 있는 경우 텍스트가 표시되지 않음. 이 경우 스포일러 방지 해제 또는 크롤링에서 제외하기 **IN-PROGRESS**
+#TODO: 리뷰에 스포일러 방지가 있는 경우 텍스트가 표시되지 않음. 이 경우 스포일러 방지 해제 **IN-PROGRESS** 크롤링에서 제외하기 **DONE**
 #TODO: 영화별로 크롤링 결과를 다른 파일에 저장하고, 각 파일명에 영화 제목 포함시키기 **DONE**
 #TODO: 가능하다면 리뷰 작성 일자도 크롤링하기 
