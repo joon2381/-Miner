@@ -1,3 +1,4 @@
+# This code is to check the current environment settings(variables, working dir, etc.)
 import os
 
 print("Current Environment Variables :")

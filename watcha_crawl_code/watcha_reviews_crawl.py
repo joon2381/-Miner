@@ -9,6 +9,8 @@ from selenium import webdriver
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.by import By
 
+import emoji
+
 from konlpy.tag import Okt
 
 
@@ -54,8 +56,13 @@ def get_word_frequencies(strings: list[str], top_n: int = None) -> list[tuple[st
     else:
         return counter.most_common()
 
-# 팝업 광고 제거
+
 def delete_ad(driver: webdriver.Chrome) -> None :
+    # 팝업 광고 제거
+    """
+    팝업 광고 버튼이 화면에 나타난 경우
+    해당 버튼을 클릭해 광고 제거
+    """
     try :
         ad_close_button = driver.find_element(By.CSS_SELECTOR, 'div.WelcomeDisplayModal > div:nth-of-type(2) > button:nth-of-type(2)')
         
@@ -83,8 +90,14 @@ def initial_setup(driver: webdriver.Chrome) -> None :
         raise Exception(e)
 
 def watcha_open_page(driver: webdriver.Chrome) -> None :
+    """
+    왓챠피디아 페이지 열기
+    1. 새 탭(왓챠피디아) 열기
+    2. 이전 탭 닫기
+    3. 새 탭으로 탭 전환
+    """
     try :
-        # 새 창 열기(왓챠피디아)
+        # 새 탭 열기(왓챠피디아)
         driver.execute_script("window.open('https://pedia.watcha.com/');")
         driver.implicitly_wait(100)
 
@@ -101,7 +114,9 @@ def watcha_open_page(driver: webdriver.Chrome) -> None :
 def watcha_login(driver: webdriver.Chrome, USER_ID: str, USER_PWD: str) -> None :
     # 로그인
     """
-    왓챠피디아는 로그인하지 않은 게스트 상태로 리뷰를 볼 수 없으므로 로그인 과정 추가
+    왓챠피디아 로그인
+    1. 로그인 버튼 클릭
+    2. 아이디 및 비밀번호 입력(전송)
     """
     delete_ad(driver)
     try :
@@ -123,6 +138,13 @@ def watcha_login(driver: webdriver.Chrome, USER_ID: str, USER_PWD: str) -> None 
 
 def watcha_search_movie(driver: webdriver.Chrome, title: str) -> str|None :
     # 영화 검색하기
+    """
+    영화 검색하기
+    1. 검색창에 영화 제목 입력(전송)
+    2. 검색 결과에서 해당 영화 클릭
+
+    :return: 영화 연도 (str)
+    """
     delete_ad(driver)
     try :
         # body > main > div:nth-of-type(1) > header:nth-of-type(1) > nav > section > ul > li:nth-child(8) input[autocomplete="off"]
@@ -163,13 +185,14 @@ def watcha_load_reviews(driver: webdriver.Chrome) -> None :
         body = driver.find_element(By.CSS_SELECTOR, 'body')
 
         # 화면 스크롤 횟수 (100회 설정 시 약 1750개 리뷰 로드, 페이지 메모리 1.1GB 정도 사용)
-        COUNT = 10
-
-        for i in tqdm(range(COUNT), desc=f"Loading Reviews : {MOVIE_TITLE}", mininterval=10, total=COUNT) :
+        COUNT = 150
+        
+        for i in tqdm(range(COUNT), desc=f"Loading Reviews : {MOVIE_TITLE}", mininterval=1, total=COUNT) :
             # body 태그에 END 키를 입력하는 것으로 페이지 최하단으로 스크롤
             body.send_keys(Keys.END)
             # 원활한 페이지 로딩을 위한 멈춤
             time.sleep(0.5)
+
     except Exception as e:
         print(f"{e} : watcha_load_reviews element not found or cannot interact")
         raise Exception(e)
@@ -189,12 +212,24 @@ def watcha_extract_reviews(driver: webdriver.Chrome) -> pd.DataFrame|None :
         rating = driver.find_elements(By.CSS_SELECTOR, 'body > main > div > section > div:nth-of-type(2) li:nth-of-type(n) > article > a:nth-of-type(1) > header > div:nth-of-type(2) > p')
         reviewers = driver.find_elements(By.CSS_SELECTOR, 'body > main > div > section > div:nth-of-type(2) li:nth-of-type(n) > article > a:nth-of-type(1) > header > div:nth-of-type(1) > p')
         reviews = driver.find_elements(By.CSS_SELECTOR, 'body > main > div > section > div:nth-of-type(2) li:nth-of-type(n) > article > a:nth-of-type(2) > p')
+        
+        # 스포일러 리뷰 보기 클릭 **현재 작동 안 됨 - IN-PROGRESS**
+        # for iter in tqdm(range(len(reviews)), desc=f"Unveiling Spoiler Reviews : {MOVIE_TITLE}:", mininterval=1, total=len(reviews)) :
+        #     try :
+        #         spoiler_button = driver.find_element(By.CSS_SELECTOR, f'body > main > div > section > div:nth-of-type(2) > ul > li:nth-of-type({iter+1}) > article > a:nth-of-type(2) > p > button')
+        #         if spoiler_button.is_displayed() :
+        #             spoiler_button.click()
+        #             driver.implicitly_wait(100)
+        #             print(f"Spoiler button clicked for review #{iter+1}")
+        #     except Exception as e :
+        #         print(f"{e} : Spoiler buttons not found or incorrect selector")
+        #         pass
 
         # pandas dataframe
         data = []
         for user, rev, rat in tqdm(zip(reviewers, reviews, rating), desc=f"Constructing DataFrame : {MOVIE_TITLE}", mininterval=1, total=len(reviews)) :
             username = user.text
-            review_text = rev.text.replace("\n"," ")
+            review_text = emoji.replace_emoji(rev.text, replace="").replace("\n"," ")
             review_len = len(review_text)
             rating_value = float(rat.text)
             data.append({"site": "watcha", "title": MOVIE_TITLE, "title_en": MOVIE_TITLE_EN, "year": MOVIE_YEAR, "reviewer": username, "review": review_text, "review_length": review_len, "rating": rating_value})
@@ -215,8 +250,9 @@ USER_PWD = "lgr2618409!"
 영화명을 검색한 뒤 제목이 완전히 동일한 영화를 크롤링하므로 영화 제목에 오탈자가 완전히 없어야 함.(띄어쓰기 포함)
 ex) "오징어게임" vs "오징어 게임 시즌 1"  **띄어쓰기 및 시즌 주의**
 """
+# e.g.
 # MOVIE_TITLE = "폭싹 속았수다"
-# MOVIE_TITLE_EN = "WhenLifeGivesYouTangerines"
+# MOVIE_TITLE_EN = "When Life Gives You Tangerines"
 
 MOVIE_TITLE_LIST = ["폭싹 속았수다", "오징어 게임 시즌 1"]
 MOVIE_TITLE_EN_LIST = ["When Life Gives You Tangerines", "Squid Game Season 1"]
@@ -242,10 +278,8 @@ for MOVIE_TITLE, MOVIE_TITLE_EN in zip(MOVIE_TITLE_LIST, MOVIE_TITLE_EN_LIST) :
 
         df = watcha_extract_reviews(driver)
 
-        # print DataFrame preview **FOR DEBUGGING**
+        # print DataFrame preview **FOR MID-TERM PRESENTATION**
         # print(df)
-
-        # Code Section for first presentation
         # print(get_word_frequencies(df["review"], top_n=20))
         # print(konlpy(df["review"], top_n=20))
 
@@ -255,14 +289,14 @@ for MOVIE_TITLE, MOVIE_TITLE_EN in zip(MOVIE_TITLE_LIST, MOVIE_TITLE_EN_LIST) :
         print(f"Error processing movie {MOVIE_TITLE_EN} : {e}")
         continue
 
-# Wait for user input for termination
+# Wait for user input to terminate
 input("Press Enter to terminate...")
 driver.quit()
 
 #TODO: 영화 제목을 리스트로 구성, 현재 main 부분을 함수화하여 for문으로 여러 영화 크롤링 가능하게 하기 **DONE**
 #TODO: CSS Selector 예외처리 및 각 선택자 변수지정 **DONE**
-#TODO: 리뷰 내용 중 비언어적 문자(ex: emoji) 삭제 
-#TODO: 리뷰 내용의 길이에 따라 필터링 기능 추가하기
-#TODO: 리뷰에 스포일러 방지가 있는 경우 텍스트가 표시되지 않음. 이 경우 스포일러 방지 해제 또는 크롤링에서 제외하기
+#TODO: 리뷰 내용 중 비언어적 문자(ex: emoji) 삭제 **DONE**
+#TODO: 리뷰 내용의 길이에 따라 필터링 기능 추가하기 
+#TODO: 리뷰에 스포일러 방지가 있는 경우 텍스트가 표시되지 않음. 이 경우 스포일러 방지 해제 또는 크롤링에서 제외하기 **IN-PROGRESS**
 #TODO: 영화별로 크롤링 결과를 다른 파일에 저장하고, 각 파일명에 영화 제목 포함시키기 **DONE**
 #TODO: 가능하다면 리뷰 작성 일자도 크롤링하기
