@@ -216,11 +216,11 @@ def watcha_extract_reviews(driver: webdriver.Chrome) -> pd.DataFrame|None :
         # 스포일러 리뷰 보기 클릭 **현재 작동 안 됨 - IN-PROGRESS**
         # for iter in tqdm(range(len(reviews)), desc=f"Unveiling Spoiler Reviews : {MOVIE_TITLE}:", mininterval=1, total=len(reviews)) :
         #     try :
-        #         spoiler_button = driver.find_element(By.CSS_SELECTOR, f'body > main > div > section > div:nth-of-type(2) > ul > li:nth-of-type({iter+1}) > article > a:nth-of-type(2) > p > button')
+        #         spoiler_button = driver.find_element(By.CSS_SELECTOR, f'body > main > div > section > div:nth-of-type(2) > ul > li:nth-of-type({(iter+1):d}) > article > a:nth-of-type(2) > p > button')
         #         if spoiler_button.is_displayed() :
         #             spoiler_button.click()
         #             driver.implicitly_wait(100)
-        #             print(f"Spoiler button clicked for review #{iter+1}")
+        #             print(f"Spoiler button clicked for review #{(iter+1):d}")
         #     except Exception as e :
         #         print(f"{e} : Spoiler buttons not found or incorrect selector")
         #         pass
@@ -238,6 +238,23 @@ def watcha_extract_reviews(driver: webdriver.Chrome) -> pd.DataFrame|None :
         return df
     except Exception as e:
         print(f"{e} : watcha_extract_reviews element not found or cannot interact")
+        raise Exception(e)
+    
+def df_filter_spoiler_reviews(df: pd.DataFrame) -> None :
+    # 리뷰 DataFrame에서 스포일러방지 리뷰 필터링
+    try :
+        spoiler_df = df[df['review'] == "스포일러가 있어요!!보기"]
+
+        # 스포일러방지 리뷰 개수 및 내용 출력 **FOR DEBUGGING**
+        # print(f"Spoiler reviews count: {len(spoiler_df)}")
+        # print(spoiler_df)
+
+        # 스포일러방지 리뷰 삭제 후 DataFrame 반환 (inplace=False 로 변경시 원본 DataFrame 유지 & df를 함수에서 반환 해주어야함.)
+        df.drop(spoiler_df.index, inplace=True)
+        # inplace=False 로 변경 시 해당 리턴 코드 사용 및 type hint 변경 필요
+        # return df
+    except Exception as e :
+        print(f"{e} : df_filter_spoiler_reviews index not found or cannot delete")
         raise Exception(e)
 
 # 왓챠피디아 아이디
@@ -283,6 +300,8 @@ for MOVIE_TITLE, MOVIE_TITLE_EN in zip(MOVIE_TITLE_LIST, MOVIE_TITLE_EN_LIST) :
         # print(get_word_frequencies(df["review"], top_n=20))
         # print(konlpy(df["review"], top_n=20))
 
+        df_filter_spoiler_reviews(df)
+
         df.to_csv(f"./watcha_reviews_csv/watcha_korean_{MOVIE_TITLE_EN.replace(' ', '')}_reviews_minimal.csv", index=False)
 
     except Exception as e:
@@ -299,4 +318,4 @@ driver.quit()
 #TODO: 리뷰 내용의 길이에 따라 필터링 기능 추가하기 
 #TODO: 리뷰에 스포일러 방지가 있는 경우 텍스트가 표시되지 않음. 이 경우 스포일러 방지 해제 또는 크롤링에서 제외하기 **IN-PROGRESS**
 #TODO: 영화별로 크롤링 결과를 다른 파일에 저장하고, 각 파일명에 영화 제목 포함시키기 **DONE**
-#TODO: 가능하다면 리뷰 작성 일자도 크롤링하기
+#TODO: 가능하다면 리뷰 작성 일자도 크롤링하기 
