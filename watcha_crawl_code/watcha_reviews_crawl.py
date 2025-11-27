@@ -133,7 +133,7 @@ def watcha_login(driver: webdriver.Chrome, USER_ID: str, USER_PWD: str) -> None 
         driver.implicitly_wait(100)
 
         PWD_input = driver.find_element(By.CSS_SELECTOR, 'div[data-select="sign-in-dialog"] form > div:nth-of-type(2) > label > div > input')
-        PWD_input.send_keys(USER_PWD+"\n")
+        PWD_input.send_keys(USER_PWD+"\n") # Enter 키 전송으로 로그인
         time.sleep(1)
     except Exception as e :
         print(f"{e} : watcha_login element not found or cannot interact")
@@ -219,18 +219,6 @@ def watcha_extract_reviews(driver: webdriver.Chrome) -> pd.DataFrame|None :
         rating = driver.find_elements(By.CSS_SELECTOR, 'body > main > div > section > div:nth-of-type(2) li:nth-of-type(n) > article > a:nth-of-type(1) > header > div:nth-of-type(2) > p')
         reviewers = driver.find_elements(By.CSS_SELECTOR, 'body > main > div > section > div:nth-of-type(2) li:nth-of-type(n) > article > a:nth-of-type(1) > header > div:nth-of-type(1) > p')
         reviews = driver.find_elements(By.CSS_SELECTOR, 'body > main > div > section > div:nth-of-type(2) li:nth-of-type(n) > article > a:nth-of-type(2) > p')
-        
-        # 스포일러 리뷰 보기 클릭 **현재 작동 안 됨 - IN-PROGRESS**
-        # for iter in tqdm(range(len(reviews)), desc=f"Unveiling Spoiler Reviews : {MOVIE_TITLE}:", mininterval=1, total=len(reviews)) :
-        #     try :
-        #         spoiler_button = driver.find_element(By.CSS_SELECTOR, f'body > main > div > section > div:nth-of-type(2) > ul > li:nth-of-type({(iter+1):d}) > article > a:nth-of-type(2) > p > button')
-        #         if spoiler_button.is_displayed() :
-        #             spoiler_button.click()
-        #             driver.implicitly_wait(100)
-        #             print(f"Spoiler button clicked for review #{(iter+1):d}")
-        #     except Exception as e :
-        #         print(f"{e} : Spoiler buttons not found or incorrect selector")
-        #         pass
 
         # pandas dataframe
         data = []
