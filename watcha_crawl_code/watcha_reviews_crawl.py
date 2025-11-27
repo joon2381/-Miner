@@ -185,6 +185,7 @@ def watcha_open_reviews(driver: webdriver.Chrome) -> None :
 
 
 def watcha_load_reviews(driver: webdriver.Chrome) -> None :
+    # 동적 페이지 로드 (스크롤 다운)
     try :
         body = driver.find_element(By.CSS_SELECTOR, 'body')
 
@@ -300,7 +301,11 @@ watcha_open_page(driver)
 
 watcha_login(driver, USER_ID, USER_PWD)
 
+# 영화제목 리스트를 순회하며 크롤링
+# **CAUTION** MOVIE_TITLE_LIST, MOVIE_TITLE_EN_LIST 영화 제목의 순서가 동일해야함
 for MOVIE_TITLE, MOVIE_TITLE_EN in zip(MOVIE_TITLE_LIST, MOVIE_TITLE_EN_LIST) :
+    # 각 영화별 크롤링 try-except 문
+    # try 문 내 어떠한 함수에서 예외가 발생한 경우 해당 영화 크롤링을 건너뛰고 에러가 발생한 함수명을 출력함
     try :
         watcha_open_page(driver)
 
@@ -312,11 +317,12 @@ for MOVIE_TITLE, MOVIE_TITLE_EN in zip(MOVIE_TITLE_LIST, MOVIE_TITLE_EN_LIST) :
 
         df = watcha_extract_reviews(driver)
 
-        # print DataFrame preview **FOR MID-TERM PRESENTATION**
+        # DataFrame preview 출력 **FOR MID-TERM PRESENTATION**
         # print(df)
         # print(get_word_frequencies(df["review"], top_n=20))
         # print(konlpy(df["review"], top_n=20))
 
+        # df 원본을 modify 하도록 구현, 원본을 유지하고 싶은 경우 함수 내 주석 참고
         df_filter_spoiler_reviews(df)
 
         df.to_csv(f"./watcha_reviews_csv/watcha_korean_{MOVIE_TITLE_EN.replace(' ', '')}_reviews_minimal.csv", index=False)
