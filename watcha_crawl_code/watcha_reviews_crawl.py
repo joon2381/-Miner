@@ -344,6 +344,8 @@ for MOVIE_TITLE, MOVIE_TITLE_EN in zip(MOVIE_TITLE_LIST, MOVIE_TITLE_EN_LIST) :
 
         watcha_spoiler_reveal(driver)
 
+        time.sleep(1)
+
         df = watcha_extract_reviews(driver)
 
         # DataFrame preview 출력 **FOR MID-TERM PRESENTATION**
