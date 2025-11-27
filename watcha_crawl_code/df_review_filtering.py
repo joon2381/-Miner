@@ -11,6 +11,10 @@ for MOVIE_TITLE, MOVIE_TITLE_EN in zip(MOVIE_TITLE_LIST, MOVIE_TITLE_EN_LIST) :
 
     spoiler_df = df[df['review'] == "스포일러가 있어요!!보기"]
 
+    if spoiler_df.empty :
+        print(f"No spoiler reviews remaining in {MOVIE_TITLE_EN} reviews.")
+        continue
+
     print(f"Spoiler reviews count: {len(spoiler_df)}")
     print(spoiler_df)
 

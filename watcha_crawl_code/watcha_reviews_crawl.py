@@ -8,6 +8,7 @@ from tqdm import tqdm
 from selenium import webdriver
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.by import By
+from selenium.webdriver import ActionChains
 
 import emoji
 
@@ -247,8 +248,33 @@ def watcha_extract_reviews(driver: webdriver.Chrome) -> pd.DataFrame|None :
         raise Exception(e)
 
 
+def watcha_spoiler_reveil(driver: webdriver.Chrome) -> None :
+    # 스포일러 리뷰 보기 클릭
+    """
+    스포일러 리뷰가 있는 경우
+    1. 스포일러 보기 버튼을 모두 검색
+    2. 각 버튼의 위치로 이동한 뒤 클릭 수행
+    """
+    try :
+        action = ActionChains(driver)
+        spoiler_buttons = driver.find_elements(By.CSS_SELECTOR, 'button[class*="acceptSpoiler"]')
+        # 클릭한 스포일러 버튼 개수 **FOR DEBUGGING**
+        # iter = 1
+        for button in spoiler_buttons :
+            if button.is_enabled() :
+                action.move_to_element(button).click().perform()
+                driver.implicitly_wait(100)
+                # 클릭한 스포일러 버튼 기록 **FOR DEBUGGING**
+                # print(f"Spoiler button #{iter} clicked")
+                # iter += 1
+    except Exception as e :
+        print(f"{e} : Spoiler buttons not found or incorrect selector")
+        raise Exception(e)
+
+
 def df_filter_spoiler_reviews(df: pd.DataFrame) -> None :
     # 리뷰 DataFrame에서 스포일러방지 리뷰 필터링
+    # watcha_spoiler_reveil() 이후 남아있을 수 있는 스포일러방지 리뷰 필터링
     """
     인자로 받은 DataFrame 내에서 'review' col의 값이
     "스포일러가 있어요!!보기" 인 row를 찾아 삭제.
@@ -262,14 +288,14 @@ def df_filter_spoiler_reviews(df: pd.DataFrame) -> None :
     try :
         spoiler_df = df[df['review'] == "스포일러가 있어요!!보기"]
 
-        # 스포일러방지 리뷰 개수 및 내용 출력 **FOR DEBUGGING**
-        # print(f"Spoiler reviews count: {len(spoiler_df)}")
-        # print(spoiler_df)
-
-        # 스포일러방지 리뷰 삭제 후 DataFrame 반환 (inplace=False 로 변경시 원본 DataFrame 유지 & df를 함수에서 반환 해주어야함.)
-        df.drop(spoiler_df.index, inplace=True)
-        # inplace=False 로 변경 시 해당 리턴 코드 사용 및 type hint 변경 필요
-        # return df
+        if spoiler_df.empty :
+            print(f"No spoiler reviews remaining in {MOVIE_TITLE_EN} reviews.")
+            return
+        else :
+            # 스포일러방지 리뷰 삭제 후 DataFrame 반환 (inplace=False 로 변경시 원본 DataFrame 유지 & df를 함수에서 반환 해주어야함.)
+            df.drop(spoiler_df.index, inplace=True)
+            # inplace=False 로 변경 시 해당 리턴 코드 사용 및 type hint 변경 필요
+            # return df
     except Exception as e :
         print(f"{e} : df_filter_spoiler_reviews index not found or cannot delete")
         raise Exception(e)
@@ -315,6 +341,8 @@ for MOVIE_TITLE, MOVIE_TITLE_EN in zip(MOVIE_TITLE_LIST, MOVIE_TITLE_EN_LIST) :
 
         watcha_load_reviews(driver)
 
+        watcha_spoiler_reveil(driver)
+
         df = watcha_extract_reviews(driver)
 
         # DataFrame preview 출력 **FOR MID-TERM PRESENTATION**
@@ -339,6 +367,6 @@ driver.quit()
 #TODO: CSS Selector 예외처리 및 각 선택자 변수지정 **DONE**
 #TODO: 리뷰 내용 중 비언어적 문자(ex: emoji) 삭제 **DONE**
 #TODO: 리뷰 내용의 길이에 따라 필터링 기능 추가하기 
-#TODO: 리뷰에 스포일러 방지가 있는 경우 텍스트가 표시되지 않음. 이 경우 스포일러 방지 해제 **IN-PROGRESS** 크롤링에서 제외하기 **DONE**
+#TODO: 리뷰에 스포일러 방지가 있는 경우 텍스트가 표시되지 않음. 이 경우 스포일러 방지 해제 **DONE** 크롤링에서 제외하기 **DONE**
 #TODO: 영화별로 크롤링 결과를 다른 파일에 저장하고, 각 파일명에 영화 제목 포함시키기 **DONE**
 #TODO: 가능하다면 리뷰 작성 일자도 크롤링하기 
