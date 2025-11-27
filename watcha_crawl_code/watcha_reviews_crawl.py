@@ -248,7 +248,7 @@ def watcha_extract_reviews(driver: webdriver.Chrome) -> pd.DataFrame|None :
         raise Exception(e)
 
 
-def watcha_spoiler_reveil(driver: webdriver.Chrome) -> None :
+def watcha_spoiler_reveal(driver: webdriver.Chrome) -> None :
     # 스포일러 리뷰 보기 클릭
     """
     스포일러 리뷰가 있는 경우
@@ -260,7 +260,7 @@ def watcha_spoiler_reveil(driver: webdriver.Chrome) -> None :
         spoiler_buttons = driver.find_elements(By.CSS_SELECTOR, 'button[class*="acceptSpoiler"]')
         # 클릭한 스포일러 버튼 개수 **FOR DEBUGGING**
         # iter = 1
-        for button in spoiler_buttons :
+        for button in tqdm(spoiler_buttons, desc=f"Revealing Spoiler Reviews : {MOVIE_TITLE}:", mininterval=1, total=len(spoiler_buttons)) :
             if button.is_enabled() :
                 action.move_to_element(button).click().perform()
                 driver.implicitly_wait(100)
@@ -274,7 +274,7 @@ def watcha_spoiler_reveil(driver: webdriver.Chrome) -> None :
 
 def df_filter_spoiler_reviews(df: pd.DataFrame) -> None :
     # 리뷰 DataFrame에서 스포일러방지 리뷰 필터링
-    # watcha_spoiler_reveil() 이후 남아있을 수 있는 스포일러방지 리뷰 필터링
+    # watcha_spoiler_reveal() 이후 남아있을 수 있는 스포일러방지 리뷰 필터링
     """
     인자로 받은 DataFrame 내에서 'review' col의 값이
     "스포일러가 있어요!!보기" 인 row를 찾아 삭제.
@@ -292,6 +292,7 @@ def df_filter_spoiler_reviews(df: pd.DataFrame) -> None :
             print(f"No spoiler reviews remaining in {MOVIE_TITLE_EN} reviews.")
             return
         else :
+            print(f"Deleting spoiler reviews remaining in {MOVIE_TITLE_EN} reviews, count: {len(spoiler_df)}")
             # 스포일러방지 리뷰 삭제 후 DataFrame 반환 (inplace=False 로 변경시 원본 DataFrame 유지 & df를 함수에서 반환 해주어야함.)
             df.drop(spoiler_df.index, inplace=True)
             # inplace=False 로 변경 시 해당 리턴 코드 사용 및 type hint 변경 필요
@@ -315,8 +316,8 @@ ex) "오징어게임" vs "오징어 게임 시즌 1"  **띄어쓰기 및 시즌 
 # MOVIE_TITLE = "폭싹 속았수다"
 # MOVIE_TITLE_EN = "When Life Gives You Tangerines"
 
-MOVIE_TITLE_LIST = ["폭싹 속았수다", "오징어 게임 시즌 1"]
-MOVIE_TITLE_EN_LIST = ["When Life Gives You Tangerines", "Squid Game Season 1"]
+MOVIE_TITLE_LIST = ["폭싹 속았수다", "오징어 게임 시즌 1", "더 글로리 파트 1", "더 글로리 파트 2", "체인소 맨"]
+MOVIE_TITLE_EN_LIST = ["When Life Gives You Tangerines", "Squid Game Season 1", "The Glory Part 1", "The Glory Part 2", "Chainsaw Man"]
 
 driver = webdriver.Chrome()
 
@@ -341,7 +342,7 @@ for MOVIE_TITLE, MOVIE_TITLE_EN in zip(MOVIE_TITLE_LIST, MOVIE_TITLE_EN_LIST) :
 
         watcha_load_reviews(driver)
 
-        watcha_spoiler_reveil(driver)
+        watcha_spoiler_reveal(driver)
 
         df = watcha_extract_reviews(driver)
 
@@ -352,6 +353,7 @@ for MOVIE_TITLE, MOVIE_TITLE_EN in zip(MOVIE_TITLE_LIST, MOVIE_TITLE_EN_LIST) :
 
         # df 원본을 modify 하도록 구현, 원본을 유지하고 싶은 경우 함수 내 주석 참고
         df_filter_spoiler_reviews(df)
+        print()
 
         df.to_csv(f"./watcha_reviews_csv/watcha_korean_{MOVIE_TITLE_EN.replace(' ', '')}_reviews_minimal.csv", index=False)
 
@@ -359,8 +361,9 @@ for MOVIE_TITLE, MOVIE_TITLE_EN in zip(MOVIE_TITLE_LIST, MOVIE_TITLE_EN_LIST) :
         print(f"Error processing movie {MOVIE_TITLE_EN} : {e}")
         continue
 
-# Wait for user input to terminate
-input("Press Enter to terminate...")
+# 종료 전 5초간 대기 및 브라우저 종료
+print("Crawling completed. Code execution will finish after this message.")
+time.sleep(5)
 driver.quit()
 
 #TODO: 영화 제목을 리스트로 구성, 현재 main 부분을 함수화하여 for문으로 여러 영화 크롤링 가능하게 하기 **DONE**
