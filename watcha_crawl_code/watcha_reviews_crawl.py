@@ -65,15 +65,15 @@ def delete_ad(driver: webdriver.Chrome) -> None :
     해당 버튼을 클릭해 광고 제거
     """
     try :
+        driver.implicitly_wait(0.5)
         ad_close_button = driver.find_element(By.CSS_SELECTOR, 'div.WelcomeDisplayModal > div:nth-of-type(2) > button:nth-of-type(2)')
         
         if ad_close_button.is_displayed() :
             ad_close_button.click()
 
-        driver.implicitly_wait(100)
     except Exception as e :
-        print(f"{e} : pop-up ad_close_button not found or cannot interact")
-        raise Exception(e)
+        print(f"POP_UP_AD_NOT_FOUND : pop-up ad_close_button not found or cannot interact")
+        pass
 
 
 def initial_setup(driver: webdriver.Chrome) -> None :
@@ -84,9 +84,9 @@ def initial_setup(driver: webdriver.Chrome) -> None :
     """
     try :
         # 브라우저 초기 설정
+        driver.implicitly_wait(3)
         driver.get("about:blank")
         driver.maximize_window()
-        driver.implicitly_wait(100)
     except Exception as e :
         print(f"{e} : initial_setup error")
         raise Exception(e)
@@ -101,14 +101,15 @@ def watcha_open_page(driver: webdriver.Chrome) -> None :
     """
     try :
         # 새 탭 열기(왓챠피디아)
+        driver.implicitly_wait(5)
         driver.execute_script("window.open('https://pedia.watcha.com/');")
-        driver.implicitly_wait(100)
+        
 
         # 현재 탭(초기 혹은 이전 탭) 닫기
         driver.close()
-        driver.implicitly_wait(100)
 
         # 탭전환(왓챠피디아)
+        driver.implicitly_wait(5)
         driver.switch_to.window(driver.window_handles[0])
     except Exception as e:
         print(f"{e} : watcha_open_page invalid or cannot interact")
@@ -124,17 +125,18 @@ def watcha_login(driver: webdriver.Chrome, USER_ID: str, USER_PWD: str) -> None 
     """
     delete_ad(driver)
     try :
+        driver.implicitly_wait(3)
         login_button = driver.find_element(By.CSS_SELECTOR, 'body > main > div:nth-of-type(1) > header:nth-of-type(1) > nav > section > ul > li:nth-child(8) > button')
         login_button.click()
-        driver.implicitly_wait(100)
         
+        driver.implicitly_wait(3)
         ID_input = driver.find_element(By.CSS_SELECTOR, 'div[data-select="sign-in-dialog"] form > div:nth-of-type(1) > label > div > input')
         ID_input.send_keys(USER_ID)
-        driver.implicitly_wait(100)
-
+        
+        time.sleep(1)
         PWD_input = driver.find_element(By.CSS_SELECTOR, 'div[data-select="sign-in-dialog"] form > div:nth-of-type(2) > label > div > input')
         PWD_input.send_keys(USER_PWD+"\n") # Enter 키 전송으로 로그인
-        time.sleep(1)
+
     except Exception as e :
         print(f"{e} : watcha_login element not found or cannot interact")
         raise Exception(e)
@@ -152,20 +154,21 @@ def watcha_search_movie(driver: webdriver.Chrome, title: str) -> str|None :
     delete_ad(driver)
     try :
         # body > main > div:nth-of-type(1) > header:nth-of-type(1) > nav > section > ul > li:nth-child(8) input[autocomplete="off"]
+        driver.implicitly_wait(3)
         search = driver.find_element(By.CSS_SELECTOR, '#desktop-search-field')
         search.send_keys(title+"\n")
-        time.sleep(1)
 
         # 영화 연도 추출
         # body > main > div:nth-of-type(1) > section > section > div.nth-of-type(2) > div:nth-child(1) > section > section.nth-of-type(2) > div.nth-of-child(1) > ul > li > a > div.nth-of-type(2) > div.nth-of-type(2)
+        driver.implicitly_wait(3)
         year_info = driver.find_element(By.CSS_SELECTOR,f'a[title="{MOVIE_TITLE}"] > div:nth-of-type(2) > div:nth-of-type(2)').text
         YEAR = re.findall(r'\d{4}', year_info)[0]
 
         # 첫 번째 검색결과 클릭하기
         # body > main > div:nth-of-type(1) > section > section > div:nth-of-type(2) > div:nth-child(1) > section > section:nth-of-type(2) > div:nth-of-child(1) > ul > li:nth-child(1) > a
+        driver.implicitly_wait(3)
         movie_page = driver.find_element(By.CSS_SELECTOR,f'a[title="{title}"]')
         movie_page.click()
-        driver.implicitly_wait(100)
 
         return YEAR
     except Exception as e :
@@ -177,9 +180,9 @@ def watcha_open_reviews(driver: webdriver.Chrome) -> None :
     # 더보기 클릭하기
     delete_ad(driver)
     try :
+        driver.implicitly_wait(3)
         review_drawer = driver.find_element(By.CSS_SELECTOR,'body > main > div:nth-of-type(1) > section > div > div:nth-of-type(2) > section > section:nth-child(3) > header > div > div > a')
         review_drawer.click()
-        driver.implicitly_wait(100)
     except Exception as e:
         print(f"{e} : watcha_open_reviews element not found or cannot interact")
         raise Exception(e)
@@ -191,7 +194,7 @@ def watcha_load_reviews(driver: webdriver.Chrome) -> None :
         body = driver.find_element(By.CSS_SELECTOR, 'body')
 
         # 화면 스크롤 횟수 (150회 설정 시 약 2600개 리뷰 로드, 100회 때 페이지 메모리 1.1GB 정도 썼는데 150회는 모르겠고 꽤 많이 사용)
-        COUNT = 150
+        COUNT = 155
         
         for i in tqdm(range(COUNT), desc=f"Loading Reviews : {MOVIE_TITLE}", mininterval=1, total=COUNT) :
             # body 태그에 END 키를 입력하는 것으로 페이지 최하단으로 스크롤
@@ -304,8 +307,8 @@ ex) "오징어게임" vs "오징어 게임 시즌 1"  **띄어쓰기 및 시즌 
 # MOVIE_TITLE = "폭싹 속았수다"
 # MOVIE_TITLE_EN = "When Life Gives You Tangerines"
 
-MOVIE_TITLE_LIST = ["폭싹 속았수다", "오징어 게임 시즌 1", "더 글로리 파트 1", "더 글로리 파트 2", "체인소 맨"]
-MOVIE_TITLE_EN_LIST = ["When Life Gives You Tangerines", "Squid Game Season 1", "The Glory Part 1", "The Glory Part 2", "Chainsaw Man"]
+MOVIE_TITLE_LIST = ["폭싹 속았수다", "오징어 게임 시즌 1", "오징어 게임 시즌 2", "오징어 게임 시즌 3", "더 글로리 파트 1", "더 글로리 파트 2", "이상한 변호사 우영우", "기생충", "지금 우리 학교는 시즌 1", "부산행", "설국열차"]
+MOVIE_TITLE_EN_LIST = ["When Life Gives You Tangerines", "Squid Game Season 1", "Squid Game Season 2", "Squid Game Season 3", "The Glory Part 1", "The Glory Part 2", "Extraordinary Attorney Woo", "Parasite", "All of Us Are Dead Season 1", "Train to Busan", "Snowpiercer"]
 
 driver = webdriver.Chrome()
 
