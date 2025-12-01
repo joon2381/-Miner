@@ -204,7 +204,7 @@ def watcha_load_reviews(driver: webdriver.Chrome, action: ActionChains) -> None 
             # body 태그에 END 키를 입력하는 것으로 페이지 최하단으로 스크롤
             body.send_keys(Keys.END)
             # 원활한 페이지 로딩을 위한 멈춤
-            time.sleep(0.5)
+            time.sleep(0.7)
 
     except Exception as e:
         print(f"{e} : watcha_load_reviews element not found or cannot interact")
