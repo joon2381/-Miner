@@ -58,7 +58,7 @@ def get_word_frequencies(strings: list[str], top_n: int = None) -> list[tuple[st
         return counter.most_common()
 
 
-def delete_ad(driver: webdriver.Chrome) -> None :
+def delete_ad(driver: webdriver.Chrome, action: ActionChains) -> None :
     # 팝업 광고 제거
     """
     팝업 광고 버튼이 화면에 나타난 경우
@@ -69,14 +69,14 @@ def delete_ad(driver: webdriver.Chrome) -> None :
         ad_close_button = driver.find_element(By.CSS_SELECTOR, 'div.WelcomeDisplayModal > div:nth-of-type(2) > button:nth-of-type(2)')
         
         if ad_close_button.is_displayed() :
-            ad_close_button.click()
+            action.move_to_element(ad_close_button).click().perform()
 
     except Exception as e :
         print(f"POP_UP_AD_NOT_FOUND : pop-up ad_close_button not found or cannot interact")
         pass
 
 
-def initial_setup(driver: webdriver.Chrome) -> None :
+def initial_setup(driver: webdriver.Chrome, action: ActionChains) -> None :
     """
     브라우저 초기 설정
     1. 빈 페이지 열기
@@ -92,7 +92,7 @@ def initial_setup(driver: webdriver.Chrome) -> None :
         raise Exception(e)
 
 
-def watcha_open_page(driver: webdriver.Chrome) -> None :
+def watcha_open_page(driver: webdriver.Chrome, action: ActionChains) -> None :
     """
     왓챠피디아 페이지 열기
     1. 새 탭(왓챠피디아) 열기
@@ -116,33 +116,37 @@ def watcha_open_page(driver: webdriver.Chrome) -> None :
         raise Exception(e)
 
 
-def watcha_login(driver: webdriver.Chrome, USER_ID: str, USER_PWD: str) -> None :
+def watcha_login(driver: webdriver.Chrome, action: ActionChains, USER_ID: str, USER_PWD: str) -> None :
     # 로그인
     """
     왓챠피디아 로그인
     1. 로그인 버튼 클릭
     2. 아이디 및 비밀번호 입력(전송)
     """
-    delete_ad(driver)
+    delete_ad(driver, action)
     try :
-        driver.implicitly_wait(3)
-        login_button = driver.find_element(By.CSS_SELECTOR, 'body > main > div:nth-of-type(1) > header:nth-of-type(1) > nav > section > ul > li:nth-child(8) > button')
-        login_button.click()
+        login_dialog = driver.find_element(By.CSS_SELECTOR, 'body > main > div:nth-of-type(1) > header:nth-of-type(1) > nav > section > ul > li:nth-child(8) > button')
+        login_dialog.click()
         
         driver.implicitly_wait(3)
         ID_input = driver.find_element(By.CSS_SELECTOR, 'div[data-select="sign-in-dialog"] form > div:nth-of-type(1) > label > div > input')
-        ID_input.send_keys(USER_ID)
-        
-        time.sleep(1)
+        action.move_to_element(ID_input).click().send_keys(USER_ID).perform()
+        time.sleep(0.5)
+
         PWD_input = driver.find_element(By.CSS_SELECTOR, 'div[data-select="sign-in-dialog"] form > div:nth-of-type(2) > label > div > input')
-        PWD_input.send_keys(USER_PWD+"\n") # Enter 키 전송으로 로그인
+        action.move_to_element(PWD_input).click().send_keys(USER_PWD).perform()
+        time.sleep(0.5)
+        
+        login_button = driver.find_element(By.CSS_SELECTOR, 'div[data-select="sign-in-dialog"] form > button')
+        action.move_to_element(login_button).click().perform()
+        time.sleep(2)
 
     except Exception as e :
         print(f"{e} : watcha_login element not found or cannot interact")
         raise Exception(e)
     
 
-def watcha_search_movie(driver: webdriver.Chrome, title: str) -> str|None :
+def watcha_search_movie(driver: webdriver.Chrome, action: ActionChains, title: str) -> str|None :
     # 영화 검색하기
     """
     영화 검색하기
@@ -151,12 +155,12 @@ def watcha_search_movie(driver: webdriver.Chrome, title: str) -> str|None :
 
     :return: 영화 연도 (str)
     """
-    delete_ad(driver)
+    delete_ad(driver, action)
     try :
         # body > main > div:nth-of-type(1) > header:nth-of-type(1) > nav > section > ul > li:nth-child(8) input[autocomplete="off"]
         driver.implicitly_wait(3)
         search = driver.find_element(By.CSS_SELECTOR, '#desktop-search-field')
-        search.send_keys(title+"\n")
+        action.move_to_element(search).click().send_keys(title+"\n").perform()
 
         # 영화 연도 추출
         # body > main > div:nth-of-type(1) > section > section > div.nth-of-type(2) > div:nth-child(1) > section > section.nth-of-type(2) > div.nth-of-child(1) > ul > li > a > div.nth-of-type(2) > div.nth-of-type(2)
@@ -168,7 +172,7 @@ def watcha_search_movie(driver: webdriver.Chrome, title: str) -> str|None :
         # body > main > div:nth-of-type(1) > section > section > div:nth-of-type(2) > div:nth-child(1) > section > section:nth-of-type(2) > div:nth-of-child(1) > ul > li:nth-child(1) > a
         driver.implicitly_wait(3)
         movie_page = driver.find_element(By.CSS_SELECTOR,f'a[title="{title}"]')
-        movie_page.click()
+        action.move_to_element(movie_page).click().perform()
 
         return YEAR
     except Exception as e :
@@ -176,19 +180,19 @@ def watcha_search_movie(driver: webdriver.Chrome, title: str) -> str|None :
         raise Exception(e)
 
 
-def watcha_open_reviews(driver: webdriver.Chrome) -> None :
+def watcha_open_reviews(driver: webdriver.Chrome, action: ActionChains) -> None :
     # 더보기 클릭하기
-    delete_ad(driver)
+    delete_ad(driver, action)
     try :
         driver.implicitly_wait(3)
         review_drawer = driver.find_element(By.CSS_SELECTOR,'body > main > div:nth-of-type(1) > section > div > div:nth-of-type(2) > section > section:nth-child(3) > header > div > div > a')
-        review_drawer.click()
+        action.move_to_element(review_drawer).click().perform()
     except Exception as e:
         print(f"{e} : watcha_open_reviews element not found or cannot interact")
         raise Exception(e)
 
 
-def watcha_load_reviews(driver: webdriver.Chrome) -> None :
+def watcha_load_reviews(driver: webdriver.Chrome, action: ActionChains) -> None :
     # 동적 페이지 로드 (스크롤 다운)
     try :
         body = driver.find_element(By.CSS_SELECTOR, 'body')
@@ -207,7 +211,7 @@ def watcha_load_reviews(driver: webdriver.Chrome) -> None :
         raise Exception(e)
 
 
-def watcha_extract_reviews(driver: webdriver.Chrome) -> pd.DataFrame|None :
+def watcha_extract_reviews(driver: webdriver.Chrome, action: ActionChains) -> pd.DataFrame|None :
     # 리뷰 작성자 및 내용 추출
     """
     rating -> 리뷰에 대한 평점이 담긴 html 태그를 iterable한 객체(List)로 저장
@@ -239,7 +243,7 @@ def watcha_extract_reviews(driver: webdriver.Chrome) -> pd.DataFrame|None :
         raise Exception(e)
 
 
-def watcha_spoiler_reveal(driver: webdriver.Chrome) -> None :
+def watcha_spoiler_reveal(driver: webdriver.Chrome, action: ActionChains) -> None :
     # 스포일러 리뷰 보기 클릭
     """
     스포일러 리뷰가 있는 경우
@@ -247,7 +251,6 @@ def watcha_spoiler_reveal(driver: webdriver.Chrome) -> None :
     2. 각 버튼의 위치로 이동한 뒤 클릭 수행
     """
     try :
-        action = ActionChains(driver)
         spoiler_buttons = driver.find_elements(By.CSS_SELECTOR, 'button[class*="acceptSpoiler"]')
         # 클릭한 스포일러 버튼 개수 **FOR DEBUGGING**
         # iter = 1
@@ -310,14 +313,17 @@ ex) "오징어게임" vs "오징어 게임 시즌 1"  **띄어쓰기 및 시즌 
 MOVIE_TITLE_LIST = ["폭싹 속았수다", "오징어 게임 시즌 1", "오징어 게임 시즌 2", "오징어 게임 시즌 3", "더 글로리 파트 1", "더 글로리 파트 2", "이상한 변호사 우영우", "기생충", "지금 우리 학교는 시즌 1", "부산행", "설국열차"]
 MOVIE_TITLE_EN_LIST = ["When Life Gives You Tangerines", "Squid Game Season 1", "Squid Game Season 2", "Squid Game Season 3", "The Glory Part 1", "The Glory Part 2", "Extraordinary Attorney Woo", "Parasite", "All of Us Are Dead Season 1", "Train to Busan", "Snowpiercer"]
 
+# Selenium WebDriver 및 ActionChains 객체 생성
+# **CAUTION** webdriver를 인자로 받는 모든 함수는 ActionChains 객체를 함께 인자로 받음
 driver = webdriver.Chrome()
+action = ActionChains(driver)
 
 # 브라우저 초기 설정
-initial_setup(driver)
+initial_setup(driver, action)
 
-watcha_open_page(driver)
+watcha_open_page(driver, action)
 
-watcha_login(driver, USER_ID, USER_PWD)
+watcha_login(driver, action, USER_ID, USER_PWD)
 
 # 영화제목 리스트를 순회하며 크롤링
 # **CAUTION** MOVIE_TITLE_LIST, MOVIE_TITLE_EN_LIST 영화 제목의 순서가 동일해야함
@@ -325,19 +331,22 @@ for MOVIE_TITLE, MOVIE_TITLE_EN in zip(MOVIE_TITLE_LIST, MOVIE_TITLE_EN_LIST) :
     # 각 영화별 크롤링 try-except 문
     # try 문 내 어떠한 함수에서 예외가 발생한 경우 해당 영화 크롤링을 건너뛰고 에러가 발생한 함수명을 출력함
     try :
-        watcha_open_page(driver)
+        print()
+        print(f"Start Crawling : {MOVIE_TITLE_EN}")
 
-        MOVIE_YEAR = watcha_search_movie(driver, MOVIE_TITLE)
+        watcha_open_page(driver, action)
 
-        watcha_open_reviews(driver)
+        MOVIE_YEAR = watcha_search_movie(driver, action, MOVIE_TITLE)
 
-        watcha_load_reviews(driver)
+        watcha_open_reviews(driver, action)
 
-        watcha_spoiler_reveal(driver)
+        watcha_load_reviews(driver, action)
+
+        watcha_spoiler_reveal(driver, action)
 
         time.sleep(1)
 
-        df = watcha_extract_reviews(driver)
+        df = watcha_extract_reviews(driver, action)
 
         # DataFrame preview 출력 **FOR MID-TERM PRESENTATION**
         # print(df)
@@ -346,7 +355,6 @@ for MOVIE_TITLE, MOVIE_TITLE_EN in zip(MOVIE_TITLE_LIST, MOVIE_TITLE_EN_LIST) :
 
         # df 원본을 modify 하도록 구현, 원본을 유지하고 싶은 경우 함수 내 주석 참고
         df_filter_spoiler_reviews(df)
-        print()
 
         df.to_csv(f"./watcha_reviews_csv/watcha_korean_{MOVIE_TITLE_EN.replace(' ', '')}_reviews_minimal.csv", index=False)
 
