@@ -310,8 +310,16 @@ ex) "오징어게임" vs "오징어 게임 시즌 1"  **띄어쓰기 및 시즌 
 # MOVIE_TITLE = "폭싹 속았수다"
 # MOVIE_TITLE_EN = "When Life Gives You Tangerines"
 
-MOVIE_TITLE_LIST = ["폭싹 속았수다", "오징어 게임 시즌 1", "오징어 게임 시즌 2", "오징어 게임 시즌 3", "더 글로리 파트 1", "더 글로리 파트 2", "이상한 변호사 우영우", "기생충", "지금 우리 학교는 시즌 1", "부산행", "설국열차"]
-MOVIE_TITLE_EN_LIST = ["When Life Gives You Tangerines", "Squid Game Season 1", "Squid Game Season 2", "Squid Game Season 3", "The Glory Part 1", "The Glory Part 2", "Extraordinary Attorney Woo", "Parasite", "All of Us Are Dead Season 1", "Train to Busan", "Snowpiercer"]
+MOVIE_TITLE_LIST = ["폭싹 속았수다", "오징어 게임 시즌 1", "오징어 게임 시즌 2", 
+                    "오징어 게임 시즌 3", "더 글로리 파트 1", "더 글로리 파트 2", 
+                    "이상한 변호사 우영우", "기생충", "지금 우리 학교는 시즌 1", 
+                    "부산행", "설국열차", "D.P. 시즌 1", 
+                    "D.P. 시즌 2"]
+MOVIE_TITLE_EN_LIST = ["When Life Gives You Tangerines", "Squid Game Season 1", "Squid Game Season 2", 
+                       "Squid Game Season 3", "The Glory Part 1", "The Glory Part 2", 
+                       "Extraordinary Attorney Woo", "Parasite", "All of Us Are Dead Season 1", 
+                       "Train to Busan", "Snowpiercer", "D.P. Season 1", 
+                       "D.P. Season 2"]
 
 # Selenium WebDriver 및 ActionChains 객체 생성
 # **CAUTION** webdriver를 인자로 받는 모든 함수는 ActionChains 객체를 함께 인자로 받음
