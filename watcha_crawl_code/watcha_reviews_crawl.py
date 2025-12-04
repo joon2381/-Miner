@@ -1,4 +1,4 @@
-import time, re
+import time, re, os, emoji
 
 import pandas as pd
 
@@ -10,7 +10,6 @@ from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.by import By
 from selenium.webdriver import ActionChains
 
-import emoji
 
 from konlpy.tag import Okt
 
@@ -56,6 +55,23 @@ def get_word_frequencies(strings: list[str], top_n: int = None) -> list[tuple[st
         return counter.most_common(top_n)
     else:
         return counter.most_common()
+
+
+def make_csv_path() -> None :
+    # watcha_reviews_csv 디렉토리 생성
+    cur_path = os.getcwd()
+    if not os.path.exists(f"{cur_path}/watcha_reviews_csv") :
+        os.makedirs(f"{cur_path}/watcha_reviews_csv")
+    else :
+        print(f"Directory already exists: {cur_path}/watcha_reviews_csv")
+
+
+def print_current_env() -> None :
+    # 현재 환경변수 및 작업 경로 출력
+    print("Current Environment Variables :")
+    for key, value in os.environ.items() :
+        print(f"{key}: {value}")
+    print("Current Working Directory : ", os.getcwd(),"\n")
 
 
 def delete_ad(driver: webdriver.Chrome, action: ActionChains) -> None :
@@ -304,14 +320,14 @@ USER_PWD = "lgr2618409!"
 """
 ** 주의점 **
 영화명을 검색한 뒤 제목이 완전히 동일한 영화를 크롤링하므로 영화 제목에 오탈자가 완전히 없어야 함.(띄어쓰기 포함)
-ex) "오징어게임" vs "오징어 게임 시즌 1"  **띄어쓰기 및 시즌 주의**
+ex. "오징어게임" vs "오징어 게임 시즌 1"  **띄어쓰기 및 시즌 주의**
 """
 # e.g.
 # MOVIE_TITLE = "폭싹 속았수다"
 # MOVIE_TITLE_EN = "When Life Gives You Tangerines"
 
 MOVIE_TITLE_LIST = ["폭싹 속았수다", "오징어 게임 시즌 1", "오징어 게임 시즌 2", 
-                    "오징어 게임 시즌 3", "더 글로리 파트 1", "더 글로리 파트 2", 
+                    "오징어 게임 시즌 3"   , "더 글로리 파트 1", "더 글로리 파트 2", 
                     "이상한 변호사 우영우", "기생충", "지금 우리 학교는 시즌 1", 
                     "부산행", "설국열차", "D.P. 시즌 1", 
                     "D.P. 시즌 2"]
@@ -325,6 +341,9 @@ MOVIE_TITLE_EN_LIST = ["When Life Gives You Tangerines", "Squid Game Season 1", 
 # **CAUTION** webdriver를 인자로 받는 모든 함수는 ActionChains 객체를 함께 인자로 받음
 driver = webdriver.Chrome()
 action = ActionChains(driver)
+
+# 리뷰 저장 디렉토리 생성
+make_csv_path()
 
 # 브라우저 초기 설정
 initial_setup(driver, action)
