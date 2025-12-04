@@ -60,10 +60,12 @@ def get_word_frequencies(strings: list[str], top_n: int = None) -> list[tuple[st
 def make_csv_path() -> None :
     # watcha_reviews_csv 디렉토리 생성
     cur_path = os.getcwd()
-    if not os.path.exists(f"{cur_path}/watcha_reviews_csv") :
-        os.makedirs(f"{cur_path}/watcha_reviews_csv")
+    csv_path = rf"{cur_path}\watcha_reviews_csv"
+    if not os.path.exists(csv_path) :
+        os.makedirs(csv_path)
+        print(f"Directory created: {csv_path}")
     else :
-        print(f"Directory already exists: {cur_path}/watcha_reviews_csv")
+        print(f"Directory already exists: {csv_path}")
 
 
 def print_current_env() -> None :
@@ -342,7 +344,8 @@ MOVIE_TITLE_EN_LIST = ["When Life Gives You Tangerines", "Squid Game Season 1", 
 driver = webdriver.Chrome()
 action = ActionChains(driver)
 
-# 리뷰 저장 디렉토리 생성
+# 리뷰 저장 디렉토리 
+print("\nCSV Directory Setup :")
 make_csv_path()
 
 # 브라우저 초기 설정
