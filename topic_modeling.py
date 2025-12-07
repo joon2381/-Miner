@@ -1,241 +1,284 @@
-import pandas as pd
-import numpy as np
 import os
 import re
+import pandas as pd
+import numpy as np
+
 import nltk
-from nltk.tokenize import sent_tokenize
-from bertopic import BERTopic
-from hdbscan import HDBSCAN
-from sklearn.feature_extraction.text import CountVectorizer
-from bertopic.representation import KeyBERTInspired
-from konlpy.tag import Okt
 from kiwipiepy import Kiwi
+
+from bertopic import BERTopic
+from sklearn.feature_extraction.text import CountVectorizer, ENGLISH_STOP_WORDS
+from sentence_transformers import SentenceTransformer
 from tqdm import tqdm
 
+import matplotlib.pyplot as plt
+from umap import UMAP
 
-# 데이터 로드
+
+# 설정 및 경로
 current_folder = os.path.dirname(os.path.abspath(__file__))
-file_watcha = os.path.join(current_folder, 'watcha_korean_SquidGameSeason1_reviews_minimal.csv')
-file_imdb = os.path.join(current_folder, 'imdb_reviews.csv')
-
-def read_csv_safe(path):
-    try: return pd.read_csv(path, encoding='utf-8')
-    except: return pd.read_csv(path, encoding='cp949')
-
-df_kr = read_csv_safe(file_watcha)
-df_en = read_csv_safe(file_imdb)
-
-# 문장 분리기 (속도 빠른 Kiwi 사용)
 kiwi = Kiwi()
 
-# 문장 분리 & 점수 선별
-# 점수는 극단적인 경우(10점, 5점 이하)만 남기고 나머지는 None 처리
-print("1. 데이터 전처리 및 문장 분리 중...")
+# 불용어 설정
+# 작품 별로 돌려가면서 추가/수정 필요
+STOPWORDS_KR = {
+    '오징어', '게임', '오징어게임', '드라마', '영화', '작품', '넷플릭스', '넷플', '시즌',
+    '진짜', '정말', '너무', '그냥', '이제', '점', '보고', '봤는데', '하는', '있는', 
+    '그리고', '하지만', '그래서', '근데', '이거', '이건', '그게', '생각', '사람', 
+    '내용', '정도', '부분', '하나', '건가', '무엇', '어떤', '만큼', '때문', '사실',
+    '이다', '하다', '있다', '없다', '되다', '같다', '보다', '보이다', '싶다',
+    '나오다', '가다', '오다', '자다', '먹다', '주다', '받다', '알다', '모르다',
+    '만들다', '시키다', '우리', '저희', '당신', '그대', '너희', '여러분',
+    '평점', '시간', '보기', '스토리', '연출', '배우', '연기', '캐릭터', '한국', '아니다' 
+}
 
-all_data = []
+domain_stopwords_en = {
+    'squid', 'game', 'series', 'show', 'movie', 'netflix', 'season', 'episode',
+    'seen', 'time', 'thing', 'make', 'made', 'review', 'acting', 'story', 'plot',
+    'character', 'characters', 'end', 'ending', 'good', 'bad', 'great', 'watch', 'watching', 'korean'
+}
+STOPWORDS_EN = set(ENGLISH_STOP_WORDS) | domain_stopwords_en
 
-# 한국어 처리
-# df_kr = df_kr.iloc[:1000] # 테스트용, 실전에서는 주석 처리
-
-for idx, row in tqdm(df_kr.iterrows(), total=len(df_kr), desc="KR (Kiwi)"):
-    review = str(row['review'])
-    # 왓챠 5점 만점 -> 10점 만점으로 환산
-    org_score = float(row.get('score', 0)) * 2 
+# 텍스트 전처리 함수
+def preprocess_text(text, lang='KR'):
+    if pd.isna(text) or str(text).strip() == "": return ""
+    text = str(text)
     
-    # 10점 or 5점 이하는 점수 부여, 나머지는 None(빈칸)
-    if org_score == 10 or org_score <= 5:
-        filtered_score = org_score
+    if lang == 'KR':
+        tokens = kiwi.tokenize(text)
+        selected_words = []
+        for t in tokens:
+            if t.tag.startswith('N') or t.tag.startswith('V') or t.tag.startswith('XR'):
+                if t.form not in STOPWORDS_KR and len(t.form) > 1:
+                    word = t.form + '다' if t.tag.startswith('V') else t.form
+                    if word not in STOPWORDS_KR:
+                        selected_words.append(word)
+        return " ".join(selected_words)
     else:
-        filtered_score = None  
-        
+        # 영어: 소문자 변환 및 정규식 후 불용어 처리
+        words = re.findall(r'\b\w+\b', text.lower())
+        selected_words = [w for w in words if w not in STOPWORDS_EN and len(w) > 2]
+        return " ".join(selected_words)
+
+# 평점 필터링 함수 (극단값만 유지)
+def filter_extreme_rating(rating):
     try:
-        # Kiwi로 문장 분리
-        splits = [s.text for s in kiwi.split_into_sents(review)]
+        r = float(rating)
+        # 4점 이하(혹평) 또는 9점 이상(극찬)만 유효, 나머지는 NaN
+        if r <= 4.0 or r >= 9.0:
+            return r
+        else:
+            return np.nan
     except:
-        splits = review.split('\n')
-    
-    for s in splits:
-        s = s.strip()
-        if len(s) >= 4: # 너무 짧은 문장 제외
-            all_data.append({
-                'Review_ID': f"KR_{idx}",
-                'Source': 'KR',
-                'Sentence': s,
-                'Original_Rating': org_score,    # 참고용 원본
-                'Rating_Filtered': filtered_score # 분석용 (조건부 점수)
-            })
+        return np.nan
 
-# (2) 영어 처리
-for idx, row in tqdm(df_en.iterrows(), total=len(df_en), desc="EN (NLTK)"):
-    review = str(row['review'])
-    org_score = float(row.get('rating', 0))
+# 데이터 로드 함수
+def read_csv_safe(path):
+    if not os.path.exists(path):
+        print(f"파일 없음: {path}")
+        return pd.DataFrame()
+    try: return pd.read_csv(path, encoding='utf-8')
+    except: 
+        try: return pd.read_csv(path, encoding='cp949')
+        except: return pd.read_csv(path, encoding='latin1')
+
+# 컬럼 자동 감지
+def find_columns_strictly(df):
+    cols_lower = {c.lower(): c for c in df.columns}
+    # 텍스트 컬럼 찾기
+    priority_candidates = ['review', 'text', 'content', 'comment', 'body']
+    text_col = None
+    for cand in priority_candidates:
+        if cand in cols_lower:
+            text_col = cols_lower[cand]
+            break
     
-    # 영어도 동일한 로직 적용
-    if org_score == 10 or org_score <= 5:
-        filtered_score = org_score
-    else:
-        filtered_score = None
+    # 평점 컬럼 찾기
+    rating_candidates = ['rating', 'score', 'star', 'grade']
+    rating_col = None
+    for cand in rating_candidates:
+        for col in df.columns:
+            if cand in col.lower():
+                rating_col = col
+                break
+        if rating_col: break
         
-    splits = sent_tokenize(review)
-    for s in splits:
-        s = s.strip()
-        if len(s) >= 10: # 영어는 좀 더 길게 잡음
-            all_data.append({
-                'Review_ID': f"EN_{idx}",
-                'Source': 'EN',
-                'Sentence': s,
-                'Original_Rating': org_score,
-                'Rating_Filtered': filtered_score
-            })
+    return text_col, rating_col
 
-df_all = pd.DataFrame(all_data)
-print(f"   => 총 {len(df_all)}개 문장 준비 완료.")
+# 메인 실행 로직
+def main():
+    print("1. 데이터 로드 중...")
+    file_watcha = os.path.join(current_folder, 'watcha_korean_SquidGameSeason1_reviews_minimal.csv')
+    file_imdb = os.path.join(current_folder, 'imdb_reviews.csv')
 
-# 2. BERTopic 모델링 (토픽 수 30, 작품에 따라 조정)
-print("2. 토픽 모델링 수행 중... (토픽 수: 30개)")
+    df_kr = read_csv_safe(file_watcha)
+    df_en = read_csv_safe(file_imdb)
 
-okt = Okt()
+    text_col_kr, rating_col_kr = find_columns_strictly(df_kr)
+    text_col_en, rating_col_en = find_columns_strictly(df_en)
 
-# 명사만 추출하여 키워드 품질 높이기
-class CustomTokenizer:
-    def __init__(self, okt):
-        self.okt = okt
-    def __call__(self, text):
-        if re.search('[가-힣]', text):
-            # 2글자 이상 명사만 추출
-            return [n for n in self.okt.nouns(text) if len(n) >= 2]
-        else:
-            text = re.sub(r'[^\w\s]', '', text).lower()
-            return [w for w in text.split() if len(w) >= 3]
+    processed_data = []
 
-# 불용어
-# 작품별로 진행해가면서 필요시 추가
-stop_words = [
-    'movie', 'series', 'drama', 'film', 'netflix', 'squid', 'game', 
-    '영화', '드라마', '오징어', '게임', '넷플릭스', '작품', '시즌', 'season',
-    '진짜', '정말', '너무', '그냥', '사람', '생각', '정도', '느낌', 'review', 'watching',
-    'episode', 'ep', 'thing', 'time', 'show', 'watch', 'story', 'plot',
-    '보고', '봤는데', '하는', '있는', '그리고', '하지만', '근데', '많이'
-]
-
-vectorizer_model = CountVectorizer(tokenizer=CustomTokenizer(okt), stop_words=stop_words, token_pattern=None)
-
-hdbscan_model = HDBSCAN(min_cluster_size=15, min_samples=5, prediction_data=True, gen_min_span_tree=True)
-
-topic_model = BERTopic(
-    embedding_model="paraphrase-multilingual-MiniLM-L12-v2",
-    vectorizer_model=vectorizer_model,
-    representation_model=KeyBERTInspired(),
-    nr_topics=30,        # 30개 토픽으로 설정
-    verbose=True
-)
-
-# 학습
-topics, probs = topic_model.fit_transform(df_all['Sentence'].tolist())
-
-print("아웃라이어 재할당 중...")
-
-# strategy="embeddings": 문장의 의미(벡터)를 기반으로 가장 가까운 토픽을 찾습니다.
-# threshold=0.6: 유사도가 60% 이상인 확실한 경우만 구조하고, 나머지는 버립니다. 
-# (너무 낮추면 엉뚱한 곳에 들어갑니다. 0.5 ~ 0.6 추천)
-new_topics = topic_model.reduce_outliers(
-    df_all['Sentence'].tolist(), 
-    topics, 
-    strategy="embeddings", 
-    threshold=0.6 
-)
-
-# 토픽 정보 갱신
-topic_model.update_topics(df_all['Sentence'].tolist(), topics=new_topics)
-topics = new_topics
-df_all['Topic'] = topics
-
-# 3. 결과 정리 및 저장
-print("3. 결과 파일 생성 중...")
-
-df_all['Topic'] = topics
-
-# 토픽 이름 생성 (자동)
-topic_labels = topic_model.generate_topic_labels(nr_words=3, topic_prefix=False, separator='_')
-topic_model.set_topic_labels(topic_labels)
-
-# 토픽 라벨 매핑 (에러 방지 로직 포함)
-topic_info = topic_model.get_topic_info()
-id_to_label = {}
-if 'CustomLabel' in topic_info.columns:
-    id_to_label = dict(zip(topic_info['Topic'], topic_info['CustomLabel']))
-elif topic_model.custom_labels_ is not None:
-    # 수동 매핑
-    for i, label in enumerate(topic_model.custom_labels_):
-        # BERTopic 내부 인덱싱 보정 (-1 토픽이 0번째일 수 있음)
-        topic_id = topic_info.iloc[i]['Topic'] 
-        id_to_label[topic_id] = label
-else:
-    id_to_label = dict(zip(topic_info['Topic'], topic_info['Name']))
-
-df_all['Topic_Label'] = df_all['Topic'].map(id_to_label)
-
-# 전체 데이터 CSV 저장
-save_path_csv = os.path.join(current_folder, "Final_Result.csv")
-df_all.to_csv(save_path_csv, index=False, encoding='utf-8-sig')
-
-
-# 대표 문장 추출 (토픽 이름 지을 때 참고용)
-print("4. 사람이 분석하기 쉽도록 '대표 문장' 추출 중...")
-
-repr_data = []
-
-# 각 토픽별로 반복
-for topic_id in sorted(list(set(topics))):
-    if topic_id == -1: continue # 아웃라이어(노이즈)는 제외
-
-    # 현재 자동 생성된 라벨
-    current_label = id_to_label.get(topic_id, f"Topic {topic_id}")
-    
-    # 대표 문장 가져오기 (BERTopic이 해당 토픽과 가장 유사도가 높은 문장을 찾아줌)
-    rep_docs = topic_model.get_representative_docs(topic_id)
-    
-    # 딕셔너리 생성
-    row_dict = {
-        'Topic_ID': topic_id,
-        'Auto_Label': current_label,
-        'Your_Custom_Name': '' # 이곳에 직접 토픽 이름 넣기
-    }
-    
-    # 문장 5개까지 채워넣기
-    for i in range(5):
-        if i < len(rep_docs):
-            row_dict[f'Example_Sentence_{i+1}'] = rep_docs[i]
-        else:
-            row_dict[f'Example_Sentence_{i+1}'] = ""
+    # 한국어 처리 (Kiwi 문장 분리)
+    if text_col_kr and not df_kr.empty:
+        for _, row in tqdm(df_kr.iterrows(), total=len(df_kr), desc="Processing Korean"):
+            review = str(row.get(text_col_kr, ''))
+            raw_rating = row.get(rating_col_kr, None)
             
-    repr_data.append(row_dict)
+            # 평점 필터링 (애매한 점수는 NaN 처리)
+            trustworthy_rating = filter_extreme_rating(raw_rating)
 
-# 대표 문장 CSV 저장
-df_repr = pd.DataFrame(repr_data)
-save_path_repr = os.path.join(current_folder, "Topic_Representative_Sentences.csv")
-df_repr.to_csv(save_path_repr, index=False, encoding='utf-8-sig')
+            if len(review) < 2 or review.lower() == 'nan': continue
+            
+            # Kiwi 문장 분리
+            sentences = kiwi.split_into_sents(review)
+            for sent in sentences:
+                if len(sent.text) < 10: continue
+                clean_tokens = preprocess_text(sent.text, lang='KR')
+                if len(clean_tokens.split()) >= 2:
+                    processed_data.append({
+                        'Original_Sentence': sent.text,
+                        'Preprocessed_Tokens': clean_tokens,
+                        'Rating': trustworthy_rating, # 필터링된 평점 적용
+                        'Lang': 'KR'
+                    })
 
+    # 영어 처리 (NLTK 문장 분리)
+    if text_col_en and not df_en.empty:
+        for _, row in tqdm(df_en.iterrows(), total=len(df_en), desc="Processing English"):
+            review = str(row.get(text_col_en, ''))
+            raw_rating = row.get(rating_col_en, None)
 
-# 간단한 산점도 분포 시각화
-# 실제는 더 좋은 퀄리티의 시각화 따로 진행해야함
-try:
-    # 데이터가 많으면 2만개 샘플링
-    viz_docs = df_all['Sentence'].tolist()
-    if len(viz_docs) > 20000:
-        import random
-        viz_docs = random.sample(viz_docs, 20000)
+            trustworthy_rating = filter_extreme_rating(raw_rating)
+
+            if len(review) < 2 or review.lower() == 'nan': continue
+            
+            # NLTK 문장 분리
+            sentences = nltk.sent_tokenize(review)
+            for sent in sentences:
+                if len(sent) < 10: continue
+                clean_tokens = preprocess_text(sent, lang='EN')
+                if len(clean_tokens.split()) >= 2:
+                    processed_data.append({
+                        'Original_Sentence': sent,
+                        'Preprocessed_Tokens': clean_tokens,
+                        'Rating': trustworthy_rating, # 필터링된 평점 적용
+                        'Lang': 'EN'
+                    })
+
+    df_final = pd.DataFrame(processed_data)
+    print(f"-> 총 분석 대상 문장 수: {len(df_final)}개")
+
+    print("2. 토픽 모델링 수행 중...")
+    sentence_model = SentenceTransformer("paraphrase-multilingual-MiniLM-L12-v2")
+    embeddings = sentence_model.encode(df_final['Original_Sentence'].tolist(), show_progress_bar=True)
     
-    fig = topic_model.visualize_documents(viz_docs, custom_labels=True)
-    fig.write_html(os.path.join(current_folder, "Final_Scatter.html"))
-except Exception as e:
-    print(f"시각화 저장 건너뜀: {e}")
+    vectorizer_model = CountVectorizer(
+        tokenizer=lambda x: x.split(),
+        preprocessor=lambda x: x,
+        stop_words=list(STOPWORDS_KR | STOPWORDS_EN) 
+    )
 
-print("\n" + "="*60)
-print("다음 파일들을 확인")
-print(f"1. 전체 데이터: {save_path_csv}")
-print("-" * 60)
-print(f"2. 토픽 이름 짓기용 파일: {save_path_repr}")
-print("-" * 60)
-print(f"3. 산점도: {os.path.join(current_folder, 'Final_Scatter.html')}")
-print("="*60)
+    # BERTopic 모델 설정
+    topic_model = BERTopic(
+        embedding_model=sentence_model, 
+        vectorizer_model=vectorizer_model,
+        min_topic_size=10, 
+        nr_topics=15,
+        verbose=True
+    )
+
+    docs = df_final['Preprocessed_Tokens'].tolist()
+    topics, probs = topic_model.fit_transform(docs, embeddings)
+    df_final['Topic'] = topics
+
+    # 토픽 이름 매핑
+    topic_info = topic_model.get_topic_info()
+    df_final['Topic_Name'] = df_final['Topic'].apply(
+        lambda x: topic_info[topic_info['Topic'] == x]['Name'].values[0]
+    )
+
+    print("3. 결과 저장 중...")
+    
+    # NaN이 아닌 유효 평점만 사용하여 토픽별 평점 계산
+    topic_rating = df_final.groupby('Topic_Name')['Rating'].mean().sort_values()
+    
+    print("\n[토픽별 평균 평점 (낮은 순 -> 불호 토픽)]")
+    print(topic_rating.head(5))
+    print("\n[토픽별 평균 평점 (높은 순 -> 호 토픽)]")
+    print(topic_rating.tail(5))
+
+    # 저장
+    df_final.to_csv(os.path.join(current_folder, "Final_Result_Clean.csv"), index=False, encoding='utf-8-sig')
+    topic_rating.to_csv(os.path.join(current_folder, "Topic_Ratings_Clean.csv"), header=True, encoding='utf-8-sig')
+
+    # 대표 예문 저장
+    representative_data = []
+    for topic_id in sorted(df_final['Topic'].unique()):
+        if topic_id == -1: continue 
+        
+        topic_rows = df_final[df_final['Topic'] == topic_id]
+        # 평점이 있는 행 우선, 없으면 전체에서 샘플링
+        clean_rows = topic_rows.dropna(subset=['Rating'])
+        target_rows = clean_rows if len(clean_rows) >= 5 else topic_rows
+            
+        samples = target_rows['Original_Sentence'].sample(n=min(5, len(target_rows))).tolist()
+        topic_name = topic_info[topic_info['Topic'] == topic_id]['Name'].values[0]
+        avg_score = topic_rows['Rating'].mean()
+        
+        row = {'Topic_ID': topic_id, 'Label': topic_name, 'Avg_Rating(Cleaned)': avg_score}
+        for i, sent in enumerate(samples):
+            row[f'Example_{i+1}'] = sent
+        representative_data.append(row)
+
+    pd.DataFrame(representative_data).to_csv(os.path.join(current_folder, "Topic_Examples_Clean.csv"), index=False, encoding='utf-8-sig')
+    
+    
+    # 간단한 산점도 그래프 그리기 (아웃라이어 제외)
+    # topic 분포 확인용
+    print("4. 토픽 분포 산점도 생성 중 (아웃라이어 제외)...")
+    
+    # 아웃라이어(-1) 제외 마스크 생성
+    non_outlier_mask = df_final['Topic'] != -1
+    
+    # 데이터 필터링
+    filtered_embeddings = embeddings[non_outlier_mask]
+    filtered_topics = df_final.loc[non_outlier_mask, 'Topic']
+    
+    if len(filtered_topics) > 0:
+        # UMAP을 사용하여 2차원으로 축소 (시각화용)
+        # n_neighbors=15, min_dist=0.1 등이 일반적인 파라미터
+        umap_2d = UMAP(n_neighbors=15, n_components=2, min_dist=0.1, metric='cosine', random_state=42)
+        embeddings_2d = umap_2d.fit_transform(filtered_embeddings)
+        
+        # 그래프 설정
+        plt.figure(figsize=(12, 8))
+        
+        # 산점도 그리기 (색상은 토픽별로 구분)
+        scatter = plt.scatter(
+            embeddings_2d[:, 0], 
+            embeddings_2d[:, 1], 
+            c=filtered_topics, 
+            cmap='tab20',  
+            s=5,           # 점 크기
+            alpha=0.7      # 투명도
+        )
+        
+        # 컬러바 및 레이블 설정
+        plt.colorbar(scatter, label='Topic ID')
+        plt.title('Topic Clusters Distribution (Outliers Removed)', fontsize=15)
+        plt.xlabel('UMAP Dimension 1')
+        plt.ylabel('UMAP Dimension 2')
+        
+        # 파일 저장
+        output_img_path = os.path.join(current_folder, "Topic_Scatter_Plot.png")
+        plt.savefig(output_img_path, dpi=300, bbox_inches='tight')
+        plt.close() # 메모리 해제
+        
+        print(f"-> 그래프 저장 완료: {output_img_path}")
+    else:
+        print("-> 유효한 토픽 데이터가 없어 그래프를 그리지 않았습니다.")
+
+
+if __name__ == "__main__":
+    main()
