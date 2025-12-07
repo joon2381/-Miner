@@ -34,8 +34,6 @@ TOPIC_REDEFINED = {
     3: '3. 황금종려상/수상 논의 (3.5)' # 평점이 낮았던 수상 관련 토픽
 }
 
-# ----------------------------------------------------------------------
-
 # --- 1. 데이터 로드 및 정제 ---
 try:
     df = pd.read_csv(FILE_PATH, header=0, sep=',', encoding='utf-8')
@@ -49,9 +47,7 @@ df['Rating'] = pd.to_numeric(df['Rating'], errors='coerce')
 df['Topic'] = pd.to_numeric(df['Topic'], errors='coerce').astype('Int64')
 df_filtered = df[(df['Topic'] != -1) & (df['Rating'].notnull())].copy()
 
-# ----------------------------------------------------------------------
 # --- 2. 토픽별 강점/단점 분석을 위한 데이터 준비 ---
-# ----------------------------------------------------------------------
 
 topic_score_analysis = df_filtered.groupby('Topic').agg(
     Average_Rating=('Rating', 'mean'),
@@ -64,9 +60,7 @@ topic_score_analysis['Topic_Name_Redefined'] = topic_score_analysis['Topic'].map
 strengths = topic_score_analysis[topic_score_analysis['Average_Rating'] >= 7.0]
 weaknesses = topic_score_analysis[topic_score_analysis['Average_Rating'] < 6.0]
 
-# ----------------------------------------------------------------------
 # --- 3. 시각화 2: 토픽별 영향력 및 평가 분포 버블/분산형 차트 (강화 버전) ---
-# ----------------------------------------------------------------------
 
 topic_score_analysis['Color'] = 'gray'
 topic_score_analysis.loc[topic_score_analysis['Average_Rating'] >= 7.0, 'Color'] = 'green'
@@ -129,9 +123,7 @@ plt.show()
 # 기본 스타일로 복원 (다음 시각화를 위해)
 plt.style.use('default') 
 
-# ----------------------------------------------------------------------
 # --- 4. 한국 vs. 해외 리뷰 토픽 비율 비교 분석 (막대 그래프) 및 최종 출력 ---
-# ----------------------------------------------------------------------
 
 # (시각화 1: 한국 vs. 해외 비율 분석 코드는 이전에 제공된 코드를 그대로 사용합니다. 여기서는 생략합니다.)
 
