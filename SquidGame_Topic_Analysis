@@ -1,0 +1,137 @@
+##1 환경 설정 및 데이터 로드
+
+pip install pandas numpy matplotlib
+
+import pandas as pd
+import matplotlib.pyplot as plt
+import matplotlib.font_manager as fm
+import numpy as np
+
+# --- 폰트 설정 ---
+# Windows 기본 맑은 고딕 설정
+plt.rcParams['font.family'] = 'Malgun Gothic'
+plt.rcParams['axes.unicode_minus'] = False # 마이너스 폰트 깨짐 방지
+
+# --- 파일 경로 설정 ---
+FILE_PATH = "C:/Users/amro0_f4hggw5/Downloads/SquidGame.txt"
+
+try:
+    # 데이터 로드 (첫 행을 헤더로, 쉼표(,)를 구분자로 가정)
+    df = pd.read_csv(FILE_PATH, header=0, sep=',', encoding='utf-8')
+except FileNotFoundError:
+    print(f"Error: 파일을 찾을 수 없습니다. 경로를 확인해주세요: {FILE_PATH}")
+    # 파일이 없는 경우 더 이상 진행하지 않음
+    exit()
+
+# 데이터 타입 변환 및 정제
+df['Rating'] = pd.to_numeric(df['Rating'], errors='coerce')
+df['Topic'] = pd.to_numeric(df['Topic'], errors='coerce').astype('Int64')
+
+# 불필요한 토픽(-1) 및 결측치 제거
+df_filtered = df[(df['Topic'] != -1) & (df['Rating'].notnull())].copy()
+
+print(f"로드된 전체 리뷰 수: {len(df)}")
+print(f"분석에 사용된 유효 리뷰 수 (토픽 != -1 & 평점 O): {len(df_filtered)}")
+print("\n" + "="*50 + "\n")
+
+#2 한국 vs. 해외 리뷰 토픽 비율 비교 분석 (막대 그래프)
+pip install tabulate
+
+## 2. 한국 vs. 해외 리뷰 토픽 비율 비교 분석 (막대 그래프)
+
+
+# 언어 그룹 분류 (KR은 한국, 나머지는 해외)
+df_filtered['Language_Group'] = df_filtered['Lang'].apply(lambda x: '한국 리뷰 (KR)' if x == 'KR' else '해외 리뷰 (Overseas)')
+
+# 토픽별 언어 그룹별 빈도 계산
+topic_lang_counts = df_filtered.groupby(['Topic', 'Language_Group']).size().unstack(fill_value=0)
+
+# 비율 계산
+topic_lang_ratios = topic_lang_counts.apply(lambda x: x / x.sum(), axis=0) * 100
+
+# 최종 토픽 이름 매핑
+# 이전에 분석된 토픽 이름과 평점 기반 분석 결과를 반영하여 재정의
+TOPIC_REDEFINED = {
+    0: '0. 캐릭터/연기 몰입 비판 (2.74)',
+    1: '1. 젠더/잔인성 논란 (3.88)',
+    2: '2. 일반적 재미/전개 (6.45)',
+    3: '3. 게임 플레이/긴장감 (4.87)',
+    4: '4. 사회 비판 메시지 비판 (3.62)',
+    5: '5. 일본 콘텐츠 비교 (4.55)',
+    6: '6. 음악/미술 연출 (4.42)',
+    7: '7. 자막/더빙 등 현지화 (8.42)',
+    8: '8. 종교적/이념적 비판 (2.64)',
+    9: '9. 타 작품 비교 (2.95)',
+    10: '10. 제작/구상 시점 (3.45)',
+    11: '11. 실망/형편없음 (4.34)',
+    12: '12. 최고의 추천/찬양 (9.75)',
+    13: '13. 우연성/옹호 비판 (4.00)'
+}
+
+# --- 오류 수정된 부분 ---
+# .fillna(Index) 대신 .get() 메서드를 사용하여 매핑에 실패하면 원본 Topic ID를 유지하도록 수정
+new_index = [TOPIC_REDEFINED.get(topic_id, f'{topic_id}. 미정의 토픽') for topic_id in topic_lang_ratios.index]
+topic_lang_ratios.index = new_index
+# --- 수정 끝 ---
+
+# 시각화
+fig, ax = plt.subplots(figsize=(12, 8))
+topic_lang_ratios.plot(kind='bar', ax=ax, width=0.8)
+
+ax.set_title('한국 vs. 해외 리뷰 토픽 비율 비교', fontsize=16, pad=20)
+ax.set_xlabel('토픽 (평균 평점)', fontsize=14)
+ax.set_ylabel('리뷰 비율 (%)', fontsize=14)
+ax.legend(title='언어 그룹', fontsize=12)
+plt.xticks(rotation=45, ha='right')
+plt.grid(axis='y', linestyle='--', alpha=0.7)
+plt.tight_layout()
+
+# 그래프를 파일로 저장
+plt.savefig('topic_ratio_comparison_bar_chart.png')
+plt.close(fig) # 그래프 창을 닫아 메모리 확보
+
+print("\n" + "="*50 + "\n")
+print("## 한국 vs. 해외 리뷰 토픽 비율 비교 결과 (표)")
+print(topic_lang_ratios.sort_values(by='한국 리뷰 (KR)', ascending=False).round(1).to_markdown())
+
+print("\n" + "="*50 + "\n")
+
+## 3. 토픽별 강점/단점 분석 (평점 기반) 및 최종 요약
+
+# 토픽별 평균 평점 및 리뷰 수 계산
+topic_score_analysis = df_filtered.groupby('Topic').agg(
+    Average_Rating=('Rating', 'mean'),
+    Review_Count=('Topic', 'size')
+).sort_values(by='Average_Rating', ascending=False).reset_index()
+
+# 토픽 이름 매핑 적용
+topic_score_analysis['Topic_Name_Redefined'] = topic_score_analysis['Topic'].map(TOPIC_REDEFINED)
+
+# 평점 기반 강점 및 단점 요약
+strengths = topic_score_analysis[topic_score_analysis['Average_Rating'] >= 6.0]
+weaknesses = topic_score_analysis[topic_score_analysis['Average_Rating'] < 4.0]
+
+print("## 3. & 4. 토픽 이름 재정의 및 강점/단점 분석 (평점 기반)")
+print("### 작품의 주요 강점 토픽 (평균 평점 6.0점 이상)")
+print(strengths[['Topic_Name_Redefined', 'Average_Rating', 'Review_Count']].to_markdown(index=False))
+
+print("\n### 작품의 주요 단점 토픽 (평균 평점 4.0점 미만)")
+print(weaknesses[['Topic_Name_Redefined', 'Average_Rating', 'Review_Count']].to_markdown(index=False))
+
+print("\n" + "="*50 + "\n")
+
+print("## 5. 데이터 기반 작품 최종 강점 및 단점 분석")
+print("### 데이터 기반 작품 최종 강점")
+print(f"- **최고의 추천 의향**: '최고의 추천/찬양' 토픽이 압도적인 평점 {strengths.iloc[0]['Average_Rating']:.2f}점으로 작품의 완성도와 만족도를 입증합니다.")
+print(f"- **해외 접근성 성공**: '자막/더빙 등 현지화' 토픽 평점 {strengths.iloc[1]['Average_Rating']:.2f}점으로 해외 시장 진출의 기반이 견고했음을 보여줍니다.")
+print("- **한국 내러티브 집중**: 한국 리뷰는 '사회 비판 메시지'와 '캐릭터/연기' 토픽에 가장 높은 비율로 반응하며 서사적 깊이에 대한 몰입이 높았습니다.")
+
+
+print("\n### 데이터 기반 작품 최종 단점")
+low_rating_topic = weaknesses[weaknesses['Average_Rating'] == weaknesses['Average_Rating'].min()].iloc[0]
+high_volume_weakness = weaknesses[weaknesses['Topic_Name_Redefined'].str.contains('캐릭터/연기 몰입 비판')].iloc[0]
+
+print(f"- **대규모 부정 평가의 중심**: '캐릭터/연기 몰입 비판' 토픽은 가장 많은 리뷰({high_volume_weakness['Review_Count']}개)를 포함하며 평균 평점 {high_volume_weakness['Average_Rating']:.2f}점으로, 대중적인 재미와 몰입도에서 가장 큰 불만이 집중되었습니다.")
+print(f"- **젠더/윤리적 논란**: '젠더/잔인성 논란' 토픽은 많은 리뷰(1,516개)와 낮은 평점(3.88점)으로 작품의 윤리적 논란이 평가에 부정적인 영향을 미쳤습니다.")
+print(f"- **메시지 전달 비판**: '사회 비판 메시지 비판' 토픽도 낮은 평점(3.62점)을 기록, 메시지 자체의 중요성에도 불구하고 전달 방식에 대한 비판이 컸습니다.")
+
