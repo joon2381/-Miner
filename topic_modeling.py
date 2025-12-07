@@ -202,15 +202,16 @@ def main():
     
     # NaN이 아닌 유효 평점만 사용하여 토픽별 평점 계산
     topic_rating = df_final.groupby('Topic_Name')['Rating'].mean().sort_values()
-    
-    print("\n[토픽별 평균 평점 (낮은 순 -> 불호 토픽)]")
+
+    # 참고용(실제로 사용하면 안됨)
+    print("\n[토픽별 평균 평점 (낮은 순)]")
     print(topic_rating.head(5))
-    print("\n[토픽별 평균 평점 (높은 순 -> 호 토픽)]")
+    print("\n[토픽별 평균 평점 (높은 순)]")
     print(topic_rating.tail(5))
 
     # 저장
-    df_final.to_csv(os.path.join(current_folder, "Final_Result_Clean.csv"), index=False, encoding='utf-8-sig')
-    topic_rating.to_csv(os.path.join(current_folder, "Topic_Ratings_Clean.csv"), header=True, encoding='utf-8-sig')
+    df_final.to_csv(os.path.join(current_folder, "Final_Result_Squid.csv"), index=False, encoding='utf-8-sig')
+    topic_rating.to_csv(os.path.join(current_folder, "Topic_Ratings_Squid.csv"), header=True, encoding='utf-8-sig')
 
     # 대표 예문 저장
     representative_data = []
@@ -226,19 +227,19 @@ def main():
         topic_name = topic_info[topic_info['Topic'] == topic_id]['Name'].values[0]
         avg_score = topic_rows['Rating'].mean()
         
-        row = {'Topic_ID': topic_id, 'Label': topic_name, 'Avg_Rating(Cleaned)': avg_score}
+        row = {'Topic_ID': topic_id, 'Label': topic_name, 'Avg_Rating': avg_score}
         for i, sent in enumerate(samples):
             row[f'Example_{i+1}'] = sent
         representative_data.append(row)
 
-    pd.DataFrame(representative_data).to_csv(os.path.join(current_folder, "Topic_Examples_Clean.csv"), index=False, encoding='utf-8-sig')
+    pd.DataFrame(representative_data).to_csv(os.path.join(current_folder, "Topic_Examples_Squid.csv"), index=False, encoding='utf-8-sig')
     
     
     # 간단한 산점도 그래프 그리기 (아웃라이어 제외)
     # topic 분포 확인용
     print("4. 토픽 분포 산점도 생성 중 (아웃라이어 제외)...")
     
-    # 아웃라이어(-1) 제외 마스크 생성
+    # 아웃라이어(-1) 제외
     non_outlier_mask = df_final['Topic'] != -1
     
     # 데이터 필터링
