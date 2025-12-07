@@ -5,4 +5,38 @@ import numpy as np
 import os
 
 # 1. 데이터 로드
-file_path = 'School_topic.txt'
+file_path = 'School_topic.txt' 
+
+if not os.path.exists(file_path):
+    print(f"오류: '{file_path}' 파일을 찾을 수 없습니다.")
+
+df = pd.read_csv(file_path)
+
+# 2. 데이터 전처리
+df['Rating'] = pd.to_numeric(df['Rating'], errors='coerce')
+df_filtered = df[(df['Topic'] != -1) & (df['Rating'].notnull())].copy()
+
+# 언어 그룹 분류
+df_filtered['Language_Group'] = df_filtered['Lang'].apply(lambda x: 'Korea (KR)' if x == 'KR' else 'Global (Overseas)')
+
+# 3. 토픽 이름 매핑
+topic_map_df = df_filtered[['Topic', 'Topic_Name']].drop_duplicates().sort_values('Topic')
+topic_labels = {}
+
+for index, row in topic_map_df.iterrows():
+    parts = row['Topic_Name'].split('_')
+    # 단어 개수가 달라도 안전하게 처리되도록 슬래시(/)로 연결
+    keywords = "/".join(parts[1:]) 
+    display_name = f"{row['Topic']}. {keywords}"
+    topic_labels[row['Topic']] = display_name
+
+df_filtered['Topic_Label'] = df_filtered['Topic'].map(topic_labels)
+
+# 4. 비율 계산
+topic_lang_counts = df_filtered.groupby(['Topic_Label', 'Language_Group']).size().unstack(fill_value=0)
+topic_lang_ratios = topic_lang_counts.apply(lambda x: x / x.sum(), axis=0) * 100
+
+# 5. 평점 계산 및 정렬 (평점 낮은 순 -> 높은 순)
+topic_avg_ratings = df_filtered.groupby('Topic_Label')['Rating'].mean()
+topic_lang_ratios['Avg_Rating'] = topic_avg_ratings
+topic_lang_ratios = topic_lang_ratios.sort_values('Avg_Rating', ascending=True)
