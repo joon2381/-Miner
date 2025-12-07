@@ -202,6 +202,7 @@ def watcha_open_reviews(driver: webdriver.Chrome, action: ActionChains) -> None 
     # 더보기 클릭하기
     delete_ad(driver, action)
     try :
+        time.sleep(0.5)
         driver.implicitly_wait(3)
         review_drawer = driver.find_element(By.CSS_SELECTOR,'body > main > div:nth-of-type(1) > section > div > div:nth-of-type(2) > section > section:nth-child(3) > header > div > div > a')
         action.move_to_element(review_drawer).click().perform()
@@ -272,7 +273,7 @@ def watcha_spoiler_reveal(driver: webdriver.Chrome, action: ActionChains) -> Non
         spoiler_buttons = driver.find_elements(By.CSS_SELECTOR, 'button[class*="acceptSpoiler"]')
         # 클릭한 스포일러 버튼 개수 **FOR DEBUGGING**
         # iter = 1
-        for button in tqdm(spoiler_buttons, desc=f"Revealing Spoiler Reviews : {MOVIE_TITLE}:", mininterval=1, total=len(spoiler_buttons)) :
+        for button in tqdm(spoiler_buttons, desc=f"Revealing Spoiler Reviews : {MOVIE_TITLE}", mininterval=1, total=len(spoiler_buttons)) :
             if button.is_enabled() :
                 action.move_to_element(button).click().perform()
                 driver.implicitly_wait(100)
@@ -332,12 +333,14 @@ MOVIE_TITLE_LIST = ["폭싹 속았수다", "오징어 게임 시즌 1", "오징�
                     "오징어 게임 시즌 3"   , "더 글로리 파트 1", "더 글로리 파트 2", 
                     "이상한 변호사 우영우", "기생충", "지금 우리 학교는 시즌 1", 
                     "부산행", "설국열차", "D.P. 시즌 1", 
-                    "D.P. 시즌 2"]
+                    "D.P. 시즌 2", "경성크리처 시즌 1", "경성크리처 시즌 2",
+                    "킹더랜드", "택배기사", "야차", "카터"]
 MOVIE_TITLE_EN_LIST = ["When Life Gives You Tangerines", "Squid Game Season 1", "Squid Game Season 2", 
                        "Squid Game Season 3", "The Glory Part 1", "The Glory Part 2", 
                        "Extraordinary Attorney Woo", "Parasite", "All of Us Are Dead Season 1", 
                        "Train to Busan", "Snowpiercer", "D.P. Season 1", 
-                       "D.P. Season 2"]
+                       "D.P. Season 2", "Gyeongseong Creature Season 1", "Gyeongseong Creature Season 2",
+                       "King The Land", "Black Knight", "Yaksha: Ruthless Operations", "Carter"]
 
 # Selenium WebDriver 및 ActionChains 객체 생성
 # **CAUTION** webdriver를 인자로 받는 모든 함수는 ActionChains 객체를 함께 인자로 받음
@@ -386,7 +389,9 @@ for MOVIE_TITLE, MOVIE_TITLE_EN in zip(MOVIE_TITLE_LIST, MOVIE_TITLE_EN_LIST) :
         # df 원본을 modify 하도록 구현, 원본을 유지하고 싶은 경우 함수 내 주석 참고
         df_filter_spoiler_reviews(df)
 
-        df.to_csv(f"./watcha_reviews_csv/watcha_korean_{MOVIE_TITLE_EN.replace(' ', '')}_reviews_minimal.csv", index=False)
+        # 크롤링 결과 CSV 파일로 저장
+        MOVIE_TITLE_CSV = re.sub(r'[^a-zA-Z0-9가-힣]', '', MOVIE_TITLE_EN)
+        df.to_csv(f"./watcha_reviews_csv/watcha_korean_{MOVIE_TITLE_CSV}_reviews_minimal.csv", index=False)
 
     except Exception as e:
         print(f"Error processing movie {MOVIE_TITLE_EN} : {e}")
