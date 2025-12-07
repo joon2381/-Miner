@@ -9,86 +9,49 @@ plt.rcParams['font.family'] = 'Malgun Gothic'
 plt.rcParams['axes.unicode_minus'] = False # 마이너스 폰트 깨짐 방지
 
 # --- 파일 경로 설정 (사용자 경로를 기준으로 설정) ---
-FILE_PATH = "C:/Users/amro0_f4hggw5/Downloads/SquidGame.txt"
+FILE_PATH = "C:/Users/amro0_f4hggw5/Downloads/Parasite_topic.txt"
 
 # --- 토픽 이름 재정의를 위한 최종 맵 정의 ---
-# 이전에 분석된 오징어 게임 토픽 ID와 평균 평점을 반영하여 정의
+# 기생충 분석 결과를 반영 (평점 7.0점 이상을 강점으로 간주)
 TOPIC_REDEFINED = {
-    0: '0. 캐릭터/연기 몰입 비판 (2.74)',
-    1: '1. 젠더/잔인성 논란 (3.88)',
-    2: '2. 일반적 재미/전개 (6.45)',
-    3: '3. 게임 플레이/긴장감 (4.87)',
-    4: '4. 사회 비판 메시지 비판 (3.62)',
-    5: '5. 일본 콘텐츠 비교 (4.55)',
-    6: '6. 음악/미술 연출 (4.42)',
-    7: '7. 자막/더빙 등 현지화 (8.42)',
-    8: '8. 종교적/이념적 비판 (2.64)',
-    9: '9. 타 작품 비교 (2.95)',
-    10: '10. 제작/구상 시점 (3.45)',
-    11: '11. 실망/형편없음 (4.34)',
-    12: '12. 최고의 추천/찬양 (9.75)',
-    13: '13. 우연성/옹호 비판 (4.00)'
+    17: '17. 단순 극찬/극단적 만족 (10.0)',
+    2: '2. 배우/한국 요소 칭찬 (9.1)',
+    5: '5. 메타포 및 주제 분석 (8.4)',
+    0: '0. 전반적 재미/장르 만족 (7.9)',
+    15: '15. 전개 속도/트위스트 (7.7)',
+    13: '13. 음악/연출 요소 극찬 (7.1)',
+    16: '16. 예측 가능성 비판 (6.6)',
+    10: '10. 삭제/추가 시퀀스 논의 (6.4)',
+    1: '1. 줄거리/가족 구성 비판 (5.6)',
+    6: '6. 공간적 연출 (계단/지하실) (5.6)',
+    8: '8. 정서적 불쾌함/우울함 (5.2)',
+    7: '7. 자본주의 메시지 논란 (5.1)',
+    14: '14. 외국어/문화적 요소 논의 (5.1)',
+    9: '9. 타 작품/감독 스타일 비교 (4.7)',
+    12: '12. 음식/피자 관련 토픽 (4.0)',
+    4: '4. 냄새/지하 공간 (계층 비판) (4.6)',
+    11: '11. 예술성/모던 스크립트 (8.2)',
+    3: '3. 황금종려상/수상 논의 (3.5)' # 평점이 낮았던 수상 관련 토픽
 }
 
-import pandas as pd
-import matplotlib.pyplot as plt
-import numpy as np
+# ----------------------------------------------------------------------
 
-# --- 폰트 설정 (이전 오류 해결을 위해 import 포함) ---
-plt.rcParams['font.family'] = 'Malgun Gothic'
-plt.rcParams['axes.unicode_minus'] = False 
-
-# --- 파일 경로 설정 (SquidGame 데이터 경로) ---
-FILE_PATH = "C:/Users/amro0_f4hggw5/Downloads/SquidGame.txt"
-
-# --- 데이터 로드 및 정제 (df_filtered 생성) ---
+# --- 1. 데이터 로드 및 정제 ---
 try:
     df = pd.read_csv(FILE_PATH, header=0, sep=',', encoding='utf-8')
 except FileNotFoundError:
     print(f"Error: 파일을 찾을 수 없습니다. 경로를 확인해주세요: {FILE_PATH}")
-    # 파일이 없는 경우 더 이상 진행하지 않음
-    # exit() # 주피터 환경에서는 exit 대신 print 후 멈춤
+    exit()
 except pd.errors.ParserError:
-    # 쉼표 구분자 실패 시 탭 구분자로 재시도
     df = pd.read_csv(FILE_PATH, header=0, sep='\t', encoding='utf-8')
 
 df['Rating'] = pd.to_numeric(df['Rating'], errors='coerce')
 df['Topic'] = pd.to_numeric(df['Topic'], errors='coerce').astype('Int64')
-
-# 불필요한 토픽(-1) 및 결측치 제거 -> 이 라인에서 df_filtered가 정의됨
 df_filtered = df[(df['Topic'] != -1) & (df['Rating'].notnull())].copy()
 
-print(f"분석에 사용된 유효 리뷰 수 (토픽 != -1 & 평점 O): {len(df_filtered)}")
-
-# --- 2. 한국 vs. 해외 리뷰 토픽 비율 비교 분석 (막대 그래프) ---
-
-df_filtered['Language_Group'] = df_filtered['Lang'].apply(lambda x: '한국 리뷰 (KR)' if x == 'KR' else '해외 리뷰 (Overseas)')
-topic_lang_counts = df_filtered.groupby(['Topic', 'Language_Group']).size().unstack(fill_value=0)
-topic_lang_ratios = topic_lang_counts.apply(lambda x: x / x.sum(), axis=0) * 100
-
-new_index = [TOPIC_REDEFINED.get(topic_id, f'{topic_id}. 미정의 토픽') for topic_id in topic_lang_ratios.index]
-topic_lang_ratios.index = new_index
-
-# 시각화 1: 한국 vs. 해외 리뷰 토픽 비율 비교 막대 그래프
-fig, ax = plt.subplots(figsize=(14, 8))
-topic_lang_ratios.plot(kind='bar', ax=ax, width=0.8)
-
-ax.set_title('[오징어 게임] 한국 vs. 해외 리뷰 토픽 비율 비교', fontsize=18, pad=20)
-ax.set_xlabel('토픽 (평균 평점)', fontsize=14)
-ax.set_ylabel('리뷰 비율 (%)', fontsize=14)
-ax.legend(title='언어 그룹', fontsize=12)
-plt.xticks(rotation=45, ha='right')
-plt.grid(axis='y', linestyle='--', alpha=0.7)
-plt.tight_layout()
-plt.savefig('squidgame_topic_ratio_comparison_bar_chart.png')
-plt.show() 
-
-print("## 한국 vs. 해외 리뷰 토픽 비율 비교 결과 (표)")
-print(topic_lang_ratios.sort_values(by='한국 리뷰 (KR)', ascending=False).round(1).to_markdown())
-
-print("\n" + "="*70 + "\n")
-
-# --- 3. 토픽별 강점/단점 분석 및 최종 요약 ---
+# ----------------------------------------------------------------------
+# --- 2. 토픽별 강점/단점 분석을 위한 데이터 준비 ---
+# ----------------------------------------------------------------------
 
 topic_score_analysis = df_filtered.groupby('Topic').agg(
     Average_Rating=('Rating', 'mean'),
@@ -97,39 +60,33 @@ topic_score_analysis = df_filtered.groupby('Topic').agg(
 
 topic_score_analysis['Topic_Name_Redefined'] = topic_score_analysis['Topic'].map(TOPIC_REDEFINED)
 
-# 강점/단점 기준 (평균 평점 6.0점 이상을 강점, 4.0점 미만을 단점으로 설정)
-strengths = topic_score_analysis[topic_score_analysis['Average_Rating'] >= 6.0]
-weaknesses = topic_score_analysis[topic_score_analysis['Average_Rating'] < 4.0]
+# 강점/단점 기준 (평균 평점 7.0점 이상을 강점, 6.0점 미만을 단점으로 설정)
+strengths = topic_score_analysis[topic_score_analysis['Average_Rating'] >= 7.0]
+weaknesses = topic_score_analysis[topic_score_analysis['Average_Rating'] < 6.0]
 
+# ----------------------------------------------------------------------
+# --- 3. 시각화 2: 토픽별 영향력 및 평가 분포 버블/분산형 차트 (강화 버전) ---
+# ----------------------------------------------------------------------
 
-print("## 3. & 4. 토픽 이름 재정의 및 강점/단점 분석 (평점 기반)")
-print("### 작품의 주요 강점 토픽 (평균 평점 6.0점 이상)")
-print(strengths[['Topic_Name_Redefined', 'Average_Rating', 'Review_Count']].to_markdown(index=False, floatfmt=".2f"))
-print("\n### 작품의 주요 단점 토픽 (평균 평점 4.0점 미만)")
-print(weaknesses[['Topic_Name_Redefined', 'Average_Rating', 'Review_Count']].to_markdown(index=False, floatfmt=".2f"))
-
-print("\n" + "="*70 + "\n")
-
-# 시각화 2: 토픽별 영향력 및 평가 분포 버블/분산형 차트
 topic_score_analysis['Color'] = 'gray'
-topic_score_analysis.loc[topic_score_analysis['Average_Rating'] >= 6.0, 'Color'] = 'green'
-topic_score_analysis.loc[topic_score_analysis['Average_Rating'] < 4.0, 'Color'] = 'red'
+topic_score_analysis.loc[topic_score_analysis['Average_Rating'] >= 7.0, 'Color'] = 'green'
+topic_score_analysis.loc[topic_score_analysis['Average_Rating'] < 6.0, 'Color'] = 'red'
 
 # Darker Theme 설정
 plt.style.use('dark_background') 
 fig, ax = plt.subplots(figsize=(14, 9))
 
 # 1. 배경 영역 설정 (강점/단점 Zone 표시)
-ax.axhspan(0, 4.0, color='darkred', alpha=0.3, label='Weakness Zone (< 4.0)') # 단점 Zone
-ax.axhspan(6.0, 10.0, color='darkgreen', alpha=0.3, label='Strength Zone (> 6.0)') # 강점 Zone
-ax.axhline(y=4.0, color='red', linestyle='-', linewidth=1.5) # 단점 기준선 (4.0점)
-ax.axhline(y=6.0, color='lime', linestyle='-', linewidth=1.5) # 강점 기준선 (6.0점)
+ax.axhspan(0, 6.0, color='darkred', alpha=0.3, label='Weakness Zone (< 6.0)') # 단점 Zone
+ax.axhspan(7.0, 10.0, color='darkgreen', alpha=0.3, label='Strength Zone (> 7.0)') # 강점 Zone
+ax.axhline(y=6.0, color='red', linestyle='-', linewidth=1.5) # 단점 기준선 (6.0점)
+ax.axhline(y=7.0, color='lime', linestyle='-', linewidth=1.5) # 강점 기준선 (7.0점)
 
 # 2. 버블 차트 생성 (리뷰 수를 버블 크기로 설정)
 scatter = ax.scatter(
     topic_score_analysis['Review_Count'],
     topic_score_analysis['Average_Rating'],
-    s=topic_score_analysis['Review_Count'] / 4,  # 크기 조정 (SquidGame 데이터에 맞게 조정)
+    s=topic_score_analysis['Review_Count'] / 2,  # 크기 조정 (기생충 데이터에 맞게 조정)
     c=topic_score_analysis['Color'],
     alpha=0.8,
     edgecolors='white', # 테두리 색상
@@ -140,8 +97,8 @@ scatter = ax.scatter(
 for i, row in topic_score_analysis.iterrows():
     name = row['Topic_Name_Redefined'].split('(')[0].strip()
     
-    # 리뷰 수가 300개 이상이거나 평점이 9.0 이상 (최고 강점), 또는 3.0 이하 (최악 단점)인 토픽만 표시
-    if row['Review_Count'] > 300 or row['Average_Rating'] >= 9.0 or row['Average_Rating'] < 3.0:
+    # 리뷰 수가 100개 이상이거나 평점이 9.0 이상 (최고 강점), 또는 6.0 미만 (단점)인 토픽만 표시
+    if row['Review_Count'] > 100 or row['Average_Rating'] >= 9.0 or row['Average_Rating'] < 6.0:
         
         # 텍스트 위치 조정
         offset_x = 70 if row['Review_Count'] < 1000 else 10
@@ -151,36 +108,35 @@ for i, row in topic_score_analysis.iterrows():
             (row['Review_Count'] + offset_x, row['Average_Rating']),
             fontsize=11,
             color='white',
-            weight='bold' if row['Average_Rating'] < 4.0 or row['Average_Rating'] > 9.0 else 'normal'
+            weight='bold' if row['Average_Rating'] < 6.0 or row['Average_Rating'] > 9.0 else 'normal'
         )
 
 # 4. 최종 시각화 설정
-ax.set_title('토픽 영향력(리뷰 수) 및 평가(평점) 분포', fontsize=20, color='white', pad=20)
+ax.set_title('[기생충] 토픽 영향력(리뷰 수) 및 평가(평점) 분포', fontsize=20, color='white', pad=20)
 ax.set_xlabel('리뷰 수 (토픽 영향력)', fontsize=14)
 ax.set_ylabel('평균 평점', fontsize=14)
-
-# Y축 레이블을 0~10으로 고정하여 스케일 명확화
 ax.set_ylim(0, 10.5) 
 
 plt.legend(handles=scatter.legend_elements("colors", num=3)[0], 
-           labels=['Strength (> 6.0)', 'Neutral (4.0-6.0)', 'Weakness (< 4.0)'],
+           labels=['Strength (> 7.0)', 'Neutral (6.0-7.0)', 'Weakness (< 6.0)'],
            title='Sentiment Zone', loc='lower right', facecolor='black', edgecolor='white', fontsize=10)
 
 plt.grid(axis='both', linestyle=':', alpha=0.4, color='white')
 plt.tight_layout()
-plt.savefig('enhanced_impact_sentiment_bubble_chart.png')
-plt.show()
+plt.savefig('enhanced_parasite_impact_sentiment_bubble_chart.png')
+plt.show() 
 
 # 기본 스타일로 복원 (다음 시각화를 위해)
-plt.style.use('default')
+plt.style.use('default') 
 
-print("\n" + "="*70 + "\n")
+# ----------------------------------------------------------------------
+# --- 4. 한국 vs. 해외 리뷰 토픽 비율 비교 분석 (막대 그래프) 및 최종 출력 ---
+# ----------------------------------------------------------------------
 
-print("## 5. 데이터 기반 작품 최종 강점 및 단점 분석")
-print("### 데이터 기반 작품 최종 강점")
-print(f"- **압도적인 추천 및 현지화 성공**: '최고의 추천/찬양' (평점 {strengths.iloc[0]['Average_Rating']:.2f}점), '자막/더빙 등 현지화' (평점 {strengths.iloc[1]['Average_Rating']:.2f}점) 토픽이 명확한 강점을 입증합니다.")
-print(f"- **대중적 성공 기반**: '일반적 재미/전개' 토픽도 {strengths.iloc[2]['Average_Rating']:.2f}점으로 준수한 만족도를 보여줍니다.")
+# (시각화 1: 한국 vs. 해외 비율 분석 코드는 이전에 제공된 코드를 그대로 사용합니다. 여기서는 생략합니다.)
 
-print("\n### 데이터 기반 작품 최종 단점 및 논란 요소")
-print(f"- **대규모 부정 평가의 중심**: '캐릭터/연기 몰입 비판' 토픽은 가장 많은 리뷰(1,915개)와 최저 평점({weaknesses.iloc[-1]['Average_Rating']:.2f}점)을 기록하여, 대중적 몰입도에서 가장 큰 불만이 집중되었습니다.")
-print(f"- **윤리/메시지 비판**: '젠더/잔인성 논란' ({weaknesses.iloc[0]['Average_Rating']:.2f}점)과 '사회 비판 메시지 비판' ({weaknesses.iloc[1]['Average_Rating']:.2f}점) 토픽이 모두 단점 영역에 위치하여, 작품의 사회적, 윤리적 논란이 평가에 부정적인 영향을 미쳤습니다.")
+print("--- [기생충] 토픽별 강점/단점 분석 (평점 기반) ---")
+print("### 작품의 주요 강점 토픽 (평균 평점 7.0점 이상)")
+print(strengths[['Topic_Name_Redefined', 'Average_Rating', 'Review_Count']].to_markdown(index=False, floatfmt=".2f"))
+print("\n### 작품의 주요 단점 토픽 (평균 평점 6.0점 미만)")
+print(weaknesses[['Topic_Name_Redefined', 'Average_Rating', 'Review_Count']].to_markdown(index=False, floatfmt=".2f"))
