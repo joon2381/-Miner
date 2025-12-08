@@ -2,6 +2,7 @@ import time, re, os, emoji
 
 import pandas as pd
 
+from typing import List, Tuple, NoReturn
 from collections import Counter
 from tqdm import tqdm
 
@@ -19,7 +20,7 @@ from konlpy.tag import Okt
 :param top_n: 등장 횟수 상위 n개만 리턴 (None 인 경우 전체 리턴)
 :return: [(단어, 등장횟수), ...] 형태의 리스트
 """
-def konlpy(strings, top_n=None) :
+def konlpy(strings: List[str], top_n: int = None) -> List[Tuple[str, int]]:
     nouns = []
     okt = Okt()
 
@@ -39,7 +40,7 @@ def konlpy(strings, top_n=None) :
         return counter.most_common()
 
 
-def get_word_frequencies(strings: list[str], top_n: int = None) -> list[tuple[str, int]] :
+def get_word_frequencies(strings: List[str], top_n: int = None) -> List[Tuple[str, int]] :
     # 단어별 빈도수 추출
     """
     여러 문자열 리스트(strings)를 받아 자주 등장하는 단어(빈도순)와 단어별 가중치(등장 횟수)를 반환합니다.
@@ -55,7 +56,7 @@ def get_word_frequencies(strings: list[str], top_n: int = None) -> list[tuple[st
         return counter.most_common()
 
 
-def make_csv_path() -> None :
+def make_csv_path() -> NoReturn :
     # watcha_reviews_csv 디렉토리 생성
     cur_path = os.getcwd()
     csv_path = rf"{cur_path}\watcha_reviews_csv"
@@ -66,7 +67,7 @@ def make_csv_path() -> None :
         print(f"Directory already exists: {csv_path}")
 
 
-def print_current_env() -> None :
+def print_current_env() -> NoReturn :
     # 현재 환경변수 및 작업 경로 출력
     print("Current Environment Variables :")
     for key, value in os.environ.items() :
@@ -74,7 +75,7 @@ def print_current_env() -> None :
     print("Current Working Directory : ", os.getcwd(),"\n")
 
 
-def delete_ad(driver: webdriver.Chrome, action: ActionChains) -> None :
+def delete_ad(driver: webdriver.Chrome, action: ActionChains) -> NoReturn :
     # 팝업 광고 제거
     """
     팝업 광고 버튼이 화면에 나타난 경우
@@ -92,7 +93,7 @@ def delete_ad(driver: webdriver.Chrome, action: ActionChains) -> None :
         pass
 
 
-def initial_setup(driver: webdriver.Chrome, action: ActionChains) -> None :
+def initial_setup(driver: webdriver.Chrome, action: ActionChains) -> NoReturn :
     """
     브라우저 초기 설정
     1. 빈 페이지 열기
@@ -108,7 +109,7 @@ def initial_setup(driver: webdriver.Chrome, action: ActionChains) -> None :
         raise Exception(e)
 
 
-def watcha_open_page(driver: webdriver.Chrome, action: ActionChains) -> None :
+def watcha_open_page(driver: webdriver.Chrome, action: ActionChains) -> NoReturn :
     """
     왓챠피디아 페이지 열기
     1. 새 탭(왓챠피디아) 열기
@@ -132,7 +133,7 @@ def watcha_open_page(driver: webdriver.Chrome, action: ActionChains) -> None :
         raise Exception(e)
 
 
-def watcha_login(driver: webdriver.Chrome, action: ActionChains, USER_ID: str, USER_PWD: str) -> None :
+def watcha_login(driver: webdriver.Chrome, action: ActionChains, USER_ID: str, USER_PWD: str) -> NoReturn :
     # 로그인
     """
     왓챠피디아 로그인
@@ -162,7 +163,7 @@ def watcha_login(driver: webdriver.Chrome, action: ActionChains, USER_ID: str, U
         raise Exception(e)
     
 
-def watcha_search_movie(driver: webdriver.Chrome, action: ActionChains, title: str) -> str|None :
+def watcha_search_movie(driver: webdriver.Chrome, action: ActionChains, title: str) -> str|NoReturn :
     # 영화 검색하기
     """
     영화 검색하기
@@ -196,7 +197,7 @@ def watcha_search_movie(driver: webdriver.Chrome, action: ActionChains, title: s
         raise Exception(e)
 
 
-def watcha_open_reviews(driver: webdriver.Chrome, action: ActionChains) -> None :
+def watcha_open_reviews(driver: webdriver.Chrome, action: ActionChains) -> NoReturn :
     # 더보기 클릭하기
     delete_ad(driver, action)
     try :
@@ -209,7 +210,7 @@ def watcha_open_reviews(driver: webdriver.Chrome, action: ActionChains) -> None 
         raise Exception(e)
 
 
-def watcha_load_reviews(driver: webdriver.Chrome, action: ActionChains) -> None :
+def watcha_load_reviews(driver: webdriver.Chrome, action: ActionChains) -> NoReturn :
     # 동적 페이지 로드 (스크롤 다운)
     try :
         body = driver.find_element(By.CSS_SELECTOR, 'body')
@@ -228,7 +229,7 @@ def watcha_load_reviews(driver: webdriver.Chrome, action: ActionChains) -> None 
         raise Exception(e)
 
 
-def watcha_extract_reviews(driver: webdriver.Chrome, action: ActionChains) -> pd.DataFrame|None :
+def watcha_extract_reviews(driver: webdriver.Chrome, action: ActionChains) -> pd.DataFrame|NoReturn :
     # 리뷰 작성자 및 내용 추출
     """
     rating -> 리뷰에 대한 평점이 담긴 html 태그를 iterable한 객체(List)로 저장
@@ -260,7 +261,7 @@ def watcha_extract_reviews(driver: webdriver.Chrome, action: ActionChains) -> pd
         raise Exception(e)
 
 
-def watcha_spoiler_reveal(driver: webdriver.Chrome, action: ActionChains) -> None :
+def watcha_spoiler_reveal(driver: webdriver.Chrome, action: ActionChains) -> NoReturn :
     # 스포일러 리뷰 보기 클릭
     """
     스포일러 리뷰가 있는 경우
@@ -283,7 +284,7 @@ def watcha_spoiler_reveal(driver: webdriver.Chrome, action: ActionChains) -> Non
         raise Exception(e)
 
 
-def df_filter_spoiler_reviews(df: pd.DataFrame) -> None :
+def df_filter_spoiler_reviews(df: pd.DataFrame) -> NoReturn :
     # 리뷰 DataFrame에서 스포일러방지 리뷰 필터링
     # watcha_spoiler_reveal() 이후 남아있을 수 있는 스포일러방지 리뷰 필터링
     """
