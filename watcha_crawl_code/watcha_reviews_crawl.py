@@ -56,7 +56,7 @@ def get_word_frequencies(strings: List[str], top_n: int = None) -> List[Tuple[st
         return counter.most_common()
 
 
-def make_csv_path() -> NoReturn :
+def make_csv_path() -> None :
     # watcha_reviews_csv 디렉토리 생성
     cur_path = os.getcwd()
     csv_path = rf"{cur_path}\watcha_reviews_csv"
@@ -67,7 +67,7 @@ def make_csv_path() -> NoReturn :
         print(f"Directory already exists: {csv_path}")
 
 
-def print_current_env() -> NoReturn :
+def print_current_env() -> None :
     # 현재 환경변수 및 작업 경로 출력
     print("Current Environment Variables :")
     for key, value in os.environ.items() :
@@ -75,7 +75,7 @@ def print_current_env() -> NoReturn :
     print("Current Working Directory : ", os.getcwd(),"\n")
 
 
-def delete_ad(driver: webdriver.Chrome, action: ActionChains) -> NoReturn :
+def delete_ad(driver: webdriver.Chrome, action: ActionChains) -> None :
     # 팝업 광고 제거
     """
     팝업 광고 버튼이 화면에 나타난 경우
@@ -93,7 +93,7 @@ def delete_ad(driver: webdriver.Chrome, action: ActionChains) -> NoReturn :
         pass
 
 
-def initial_setup(driver: webdriver.Chrome, action: ActionChains) -> NoReturn :
+def initial_setup(driver: webdriver.Chrome, action: ActionChains) -> None|NoReturn :
     """
     브라우저 초기 설정
     1. 빈 페이지 열기
@@ -109,7 +109,7 @@ def initial_setup(driver: webdriver.Chrome, action: ActionChains) -> NoReturn :
         raise Exception(e)
 
 
-def watcha_open_page(driver: webdriver.Chrome, action: ActionChains) -> NoReturn :
+def watcha_open_page(driver: webdriver.Chrome, action: ActionChains) -> None|NoReturn :
     """
     왓챠피디아 페이지 열기
     1. 새 탭(왓챠피디아) 열기
@@ -133,7 +133,7 @@ def watcha_open_page(driver: webdriver.Chrome, action: ActionChains) -> NoReturn
         raise Exception(e)
 
 
-def watcha_login(driver: webdriver.Chrome, action: ActionChains, USER_ID: str, USER_PWD: str) -> NoReturn :
+def watcha_login(driver: webdriver.Chrome, action: ActionChains, USER_ID: str, USER_PWD: str) -> None|NoReturn :
     # 로그인
     """
     왓챠피디아 로그인
@@ -197,7 +197,7 @@ def watcha_search_movie(driver: webdriver.Chrome, action: ActionChains, title: s
         raise Exception(e)
 
 
-def watcha_open_reviews(driver: webdriver.Chrome, action: ActionChains) -> NoReturn :
+def watcha_open_reviews(driver: webdriver.Chrome, action: ActionChains) -> None|NoReturn :
     # 더보기 클릭하기
     delete_ad(driver, action)
     try :
@@ -210,7 +210,7 @@ def watcha_open_reviews(driver: webdriver.Chrome, action: ActionChains) -> NoRet
         raise Exception(e)
 
 
-def watcha_load_reviews(driver: webdriver.Chrome, action: ActionChains) -> NoReturn :
+def watcha_load_reviews(driver: webdriver.Chrome, action: ActionChains) -> None|NoReturn :
     # 동적 페이지 로드 (스크롤 다운)
     try :
         body = driver.find_element(By.CSS_SELECTOR, 'body')
@@ -261,7 +261,7 @@ def watcha_extract_reviews(driver: webdriver.Chrome, action: ActionChains) -> pd
         raise Exception(e)
 
 
-def watcha_spoiler_reveal(driver: webdriver.Chrome, action: ActionChains) -> NoReturn :
+def watcha_spoiler_reveal(driver: webdriver.Chrome, action: ActionChains) -> None|NoReturn :
     # 스포일러 리뷰 보기 클릭
     """
     스포일러 리뷰가 있는 경우
@@ -284,7 +284,7 @@ def watcha_spoiler_reveal(driver: webdriver.Chrome, action: ActionChains) -> NoR
         raise Exception(e)
 
 
-def df_filter_spoiler_reviews(df: pd.DataFrame) -> NoReturn :
+def df_filter_spoiler_reviews(df: pd.DataFrame) -> None|NoReturn :
     # 리뷰 DataFrame에서 스포일러방지 리뷰 필터링
     # watcha_spoiler_reveal() 이후 남아있을 수 있는 스포일러방지 리뷰 필터링
     """
