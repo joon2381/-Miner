@@ -61,9 +61,15 @@ def preprocess_text(text, lang='KR'):
         return " ".join(selected_words)
 
 # 평점 필터링 함수 (극단값만 유지)
-def filter_extreme_rating(rating):
+def filter_extreme_rating(rating, lang='KR'):
     try:
         r = float(rating)
+        if pd.isna(r):
+            return np.nan
+
+        if lang == 'KR':
+            r = r * 2 # 5점 만점을 10점 만점으로 반환
+        
         # 4점 이하(혹평) 또는 9점 이상(극찬)만 유효, 나머지는 NaN
         if r <= 4.0 or r >= 9.0:
             return r
@@ -126,7 +132,7 @@ def main():
             raw_rating = row.get(rating_col_kr, None)
             
             # 평점 필터링 (애매한 점수는 NaN 처리)
-            trustworthy_rating = filter_extreme_rating(raw_rating)
+            trustworthy_rating = filter_extreme_rating(raw_rating, lang='KR')
 
             if len(review) < 2 or review.lower() == 'nan': continue
             
@@ -149,7 +155,7 @@ def main():
             review = str(row.get(text_col_en, ''))
             raw_rating = row.get(rating_col_en, None)
 
-            trustworthy_rating = filter_extreme_rating(raw_rating)
+            trustworthy_rating = filter_extreme_rating(raw_rating, lang='EN')
 
             if len(review) < 2 or review.lower() == 'nan': continue
             
