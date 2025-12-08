@@ -11,16 +11,21 @@ from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.by import By
 from selenium.webdriver import ActionChains
 
+# **Unused** 주석이 붙어 있는 함수의 경우 현재 코드 내에서 사용되지 않음. 중간 발표에 사용된 부분이며 추후 필요시 활용 가능
+# konlpy 패키지가 설치되지 않은 경우 해당 주석이 붙은 함수와 import 문을 제거한 뒤 실행해도 무방
+
+# **Unused**
 from konlpy.tag import Okt
 
-# koNLPy 를 사용한 빈도수 추출
-"""
-여러 문자열 리스트(strings)를 받아 자주 등장하는 단어(빈도순)와 단어별 가중치(등장 횟수)를 반환.
-:param strings: 문자열 리스트
-:param top_n: 등장 횟수 상위 n개만 리턴 (None 인 경우 전체 리턴)
-:return: [(단어, 등장횟수), ...] 형태의 리스트
-"""
+# **Unused**
 def konlpy(strings: List[str], top_n: int = None) -> List[Tuple[str, int]]:
+    # koNLPy 를 사용한 빈도수 추출
+    """
+    여러 문자열 리스트(strings)를 받아 자주 등장하는 단어(빈도순)와 단어별 가중치(등장 횟수)를 반환.
+    :param strings: 문자열 리스트
+    :param top_n: 등장 횟수 상위 n개만 리턴 (None 인 경우 전체 리턴)
+    :return: [(단어, 등장횟수), ...] 형태의 리스트
+    """
     nouns = []
     okt = Okt()
 
@@ -40,6 +45,7 @@ def konlpy(strings: List[str], top_n: int = None) -> List[Tuple[str, int]]:
         return counter.most_common()
 
 
+# **Unused**
 def get_word_frequencies(strings: List[str], top_n: int = None) -> List[Tuple[str, int]] :
     # 단어별 빈도수 추출
     """
