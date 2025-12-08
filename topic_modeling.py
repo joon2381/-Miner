@@ -68,7 +68,7 @@ def filter_extreme_rating(rating, lang='KR'):
             return np.nan
 
         if lang == 'KR':
-            r = r * 2 # 5점 만점을 10점 만점으로 반환
+            r = r * 2 # 왓챠는 5점 만점이므로 *2를 해줘서 해외 리뷰와 별점 맞추기
         
         # 4점 이하(혹평) 또는 9점 이상(극찬)만 유효, 나머지는 NaN
         if r <= 4.0 or r >= 9.0:
