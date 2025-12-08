@@ -2,7 +2,7 @@ import time, re, os, emoji
 
 import pandas as pd
 
-from typing import List, Tuple, NoReturn
+from typing import List, Tuple, NoReturn, Union
 from collections import Counter
 from tqdm import tqdm
 
@@ -99,7 +99,7 @@ def delete_ad(driver: webdriver.Chrome, action: ActionChains) -> None :
         pass
 
 
-def initial_setup(driver: webdriver.Chrome, action: ActionChains) -> None|NoReturn :
+def initial_setup(driver: webdriver.Chrome, action: ActionChains) -> Union[None, NoReturn] :
     """
     브라우저 초기 설정
     1. 빈 페이지 열기
@@ -115,7 +115,7 @@ def initial_setup(driver: webdriver.Chrome, action: ActionChains) -> None|NoRetu
         raise Exception(e)
 
 
-def watcha_open_page(driver: webdriver.Chrome, action: ActionChains) -> None|NoReturn :
+def watcha_open_page(driver: webdriver.Chrome, action: ActionChains) -> Union[None, NoReturn] :
     """
     왓챠피디아 페이지 열기
     1. 새 탭(왓챠피디아) 열기
@@ -139,7 +139,7 @@ def watcha_open_page(driver: webdriver.Chrome, action: ActionChains) -> None|NoR
         raise Exception(e)
 
 
-def watcha_login(driver: webdriver.Chrome, action: ActionChains, USER_ID: str, USER_PWD: str) -> None|NoReturn :
+def watcha_login(driver: webdriver.Chrome, action: ActionChains, USER_ID: str, USER_PWD: str) -> Union[None, NoReturn] :
     # 로그인
     """
     왓챠피디아 로그인
@@ -169,7 +169,7 @@ def watcha_login(driver: webdriver.Chrome, action: ActionChains, USER_ID: str, U
         raise Exception(e)
     
 
-def watcha_search_movie(driver: webdriver.Chrome, action: ActionChains, title: str) -> str|NoReturn :
+def watcha_search_movie(driver: webdriver.Chrome, action: ActionChains, title: str) -> Union[str, NoReturn] :
     # 영화 검색하기
     """
     영화 검색하기
@@ -203,7 +203,7 @@ def watcha_search_movie(driver: webdriver.Chrome, action: ActionChains, title: s
         raise Exception(e)
 
 
-def watcha_open_reviews(driver: webdriver.Chrome, action: ActionChains) -> None|NoReturn :
+def watcha_open_reviews(driver: webdriver.Chrome, action: ActionChains) -> Union[None, NoReturn] :
     # 더보기 클릭하기
     delete_ad(driver, action)
     try :
@@ -216,7 +216,7 @@ def watcha_open_reviews(driver: webdriver.Chrome, action: ActionChains) -> None|
         raise Exception(e)
 
 
-def watcha_load_reviews(driver: webdriver.Chrome, action: ActionChains) -> None|NoReturn :
+def watcha_load_reviews(driver: webdriver.Chrome, action: ActionChains) -> Union[None, NoReturn] :
     # 동적 페이지 로드 (스크롤 다운)
     try :
         body = driver.find_element(By.CSS_SELECTOR, 'body')
@@ -235,7 +235,7 @@ def watcha_load_reviews(driver: webdriver.Chrome, action: ActionChains) -> None|
         raise Exception(e)
 
 
-def watcha_extract_reviews(driver: webdriver.Chrome, action: ActionChains) -> pd.DataFrame|NoReturn :
+def watcha_extract_reviews(driver: webdriver.Chrome, action: ActionChains) -> Union[pd.DataFrame, NoReturn] :
     # 리뷰 작성자 및 내용 추출
     """
     rating -> 리뷰에 대한 평점이 담긴 html 태그를 iterable한 객체(List)로 저장
@@ -267,7 +267,7 @@ def watcha_extract_reviews(driver: webdriver.Chrome, action: ActionChains) -> pd
         raise Exception(e)
 
 
-def watcha_spoiler_reveal(driver: webdriver.Chrome, action: ActionChains) -> None|NoReturn :
+def watcha_spoiler_reveal(driver: webdriver.Chrome, action: ActionChains) -> Union[None, NoReturn] :
     # 스포일러 리뷰 보기 클릭
     """
     스포일러 리뷰가 있는 경우
@@ -290,7 +290,7 @@ def watcha_spoiler_reveal(driver: webdriver.Chrome, action: ActionChains) -> Non
         raise Exception(e)
 
 
-def df_filter_spoiler_reviews(df: pd.DataFrame) -> None|NoReturn :
+def df_filter_spoiler_reviews(df: pd.DataFrame) -> Union[None, NoReturn] :
     # 리뷰 DataFrame에서 스포일러방지 리뷰 필터링
     # watcha_spoiler_reveal() 이후 남아있을 수 있는 스포일러방지 리뷰 필터링
     """
