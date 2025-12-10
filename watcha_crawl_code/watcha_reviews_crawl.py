@@ -320,98 +320,99 @@ def df_filter_spoiler_reviews(df: pd.DataFrame) -> Union[None, NoReturn] :
         raise Exception(e)
 
 
-# 왓챠피디아 아이디
-USER_ID = "lgr9603@kangwon.ac.kr"
-USER_PWD = "lgr2618409!"
+if __name__ == "__main__" :
+    # 왓챠피디아 아이디
+    USER_ID = "lgr9603@kangwon.ac.kr"
+    USER_PWD = "lgr2618409!"
 
-# 검색할 영화명
-"""
-** 주의점 **
-영화명을 검색한 뒤 제목이 완전히 동일한 영화를 크롤링하므로 영화 제목에 오탈자가 완전히 없어야 함.(띄어쓰기 포함)
-ex. "오징어게임" vs "오징어 게임 시즌 1"  **띄어쓰기 및 시즌 주의**
-"""
-# e.g.
-# MOVIE_TITLE = "폭싹 속았수다"
-# MOVIE_TITLE_EN = "When Life Gives You Tangerines"
+    # 검색할 영화명
+    """
+    ** 주의점 **
+    영화명을 검색한 뒤 제목이 완전히 동일한 영화를 크롤링하므로 영화 제목에 오탈자가 완전히 없어야 함.(띄어쓰기 포함)
+    ex. "오징어게임" vs "오징어 게임 시즌 1"  **띄어쓰기 및 시즌 주의**
+    """
+    # e.g.
+    # MOVIE_TITLE = "폭싹 속았수다"
+    # MOVIE_TITLE_EN = "When Life Gives You Tangerines"
 
-MOVIE_TITLE_LIST = ["폭싹 속았수다", "오징어 게임 시즌 1",
-                    "오징어 게임 시즌 2", "오징어 게임 시즌 3",
-                    "더 글로리 파트 1", "더 글로리 파트 2", 
-                    "이상한 변호사 우영우", "기생충",
-                    "지금 우리 학교는 시즌 1", "부산행",
-                    "설국열차", "D.P. 시즌 1",
-                    "D.P. 시즌 2", "경성크리처 시즌 1",
-                    "경성크리처 시즌 2", "킹더랜드",
-                    "택배기사", "야차", "카터"]
-MOVIE_TITLE_EN_LIST = ["When Life Gives You Tangerines", "Squid Game Season 1",
-                       "Squid Game Season 2", "Squid Game Season 3",
-                       "The Glory Part 1", "The Glory Part 2", 
-                       "Extraordinary Attorney Woo", "Parasite",
-                       "All of Us Are Dead Season 1", "Train to Busan",
-                       "Snowpiercer", "D.P. Season 1",
-                       "D.P. Season 2", "Gyeongseong Creature Season 1",
-                       "Gyeongseong Creature Season 2", "King The Land",
-                       "Black Knight", "Yaksha: Ruthless Operations", "Carter"]
+    MOVIE_TITLE_LIST = ["폭싹 속았수다", "오징어 게임 시즌 1",
+                        "오징어 게임 시즌 2", "오징어 게임 시즌 3",
+                        "더 글로리 파트 1", "더 글로리 파트 2", 
+                        "이상한 변호사 우영우", "기생충",
+                        "지금 우리 학교는 시즌 1", "부산행",
+                        "설국열차", "D.P. 시즌 1",
+                        "D.P. 시즌 2", "경성크리처 시즌 1",
+                        "경성크리처 시즌 2", "킹더랜드",
+                        "택배기사", "야차", "카터"]
+    MOVIE_TITLE_EN_LIST = ["When Life Gives You Tangerines", "Squid Game Season 1",
+                        "Squid Game Season 2", "Squid Game Season 3",
+                        "The Glory Part 1", "The Glory Part 2", 
+                        "Extraordinary Attorney Woo", "Parasite",
+                        "All of Us Are Dead Season 1", "Train to Busan",
+                        "Snowpiercer", "D.P. Season 1",
+                        "D.P. Season 2", "Gyeongseong Creature Season 1",
+                        "Gyeongseong Creature Season 2", "King The Land",
+                        "Black Knight", "Yaksha: Ruthless Operations", "Carter"]
 
-# Selenium WebDriver 및 ActionChains 객체 생성
-# **CAUTION** webdriver를 인자로 받는 모든 함수는 ActionChains 객체를 함께 인자로 받음
-driver = webdriver.Chrome()
-action = ActionChains(driver)
+    # Selenium WebDriver 및 ActionChains 객체 생성
+    # **CAUTION** webdriver를 인자로 받는 모든 함수는 ActionChains 객체를 함께 인자로 받음
+    driver = webdriver.Chrome()
+    action = ActionChains(driver)
 
-# 리뷰 저장 디렉토리 
-print("\nCSV Directory Setup :")
-make_csv_path()
+    # 리뷰 저장 디렉토리 
+    print("\nCSV Directory Setup :")
+    make_csv_path()
 
-# 브라우저 초기 설정
-initial_setup(driver, action)
+    # 브라우저 초기 설정
+    initial_setup(driver, action)
 
-watcha_open_page(driver, action)
+    watcha_open_page(driver, action)
 
-watcha_login(driver, action, USER_ID, USER_PWD)
+    watcha_login(driver, action, USER_ID, USER_PWD)
 
-# 영화제목 리스트를 순회하며 크롤링
-# **CAUTION** MOVIE_TITLE_LIST, MOVIE_TITLE_EN_LIST 영화 제목의 순서가 동일해야함
-for MOVIE_TITLE, MOVIE_TITLE_EN in zip(MOVIE_TITLE_LIST, MOVIE_TITLE_EN_LIST) :
-    # 각 영화별 크롤링 try-except 문
-    # try 문 내 어떠한 함수에서 예외가 발생한 경우 해당 영화 크롤링을 건너뛰고 에러가 발생한 함수명을 출력함
-    try :
-        print()
-        print(f"Start Crawling : {MOVIE_TITLE_EN}")
+    # 영화제목 리스트를 순회하며 크롤링
+    # **CAUTION** MOVIE_TITLE_LIST, MOVIE_TITLE_EN_LIST 영화 제목의 순서가 동일해야함
+    for MOVIE_TITLE, MOVIE_TITLE_EN in zip(MOVIE_TITLE_LIST, MOVIE_TITLE_EN_LIST) :
+        # 각 영화별 크롤링 try-except 문
+        # try 문 내 어떠한 함수에서 예외가 발생한 경우 해당 영화 크롤링을 건너뛰고 에러가 발생한 함수명을 출력함
+        try :
+            print()
+            print(f"Start Crawling : {MOVIE_TITLE_EN}")
 
-        watcha_open_page(driver, action)
+            watcha_open_page(driver, action)
 
-        MOVIE_YEAR = watcha_search_movie(driver, action, MOVIE_TITLE)
+            MOVIE_YEAR = watcha_search_movie(driver, action, MOVIE_TITLE)
 
-        watcha_open_reviews(driver, action)
+            watcha_open_reviews(driver, action)
 
-        watcha_load_reviews(driver, action)
+            watcha_load_reviews(driver, action)
 
-        watcha_spoiler_reveal(driver, action)
+            watcha_spoiler_reveal(driver, action)
 
-        time.sleep(1)
+            time.sleep(1)
 
-        df = watcha_extract_reviews(driver, action)
+            df = watcha_extract_reviews(driver, action)
 
-        # DataFrame preview 출력 **FOR MID-TERM PRESENTATION**
-        # print(df)
-        # print(get_word_frequencies(df["review"], top_n=20))
-        # print(konlpy(df["review"], top_n=20))
+            # DataFrame preview 출력 **FOR MID-TERM PRESENTATION**
+            # print(df)
+            # print(get_word_frequencies(df["review"], top_n=20))
+            # print(konlpy(df["review"], top_n=20))
 
-        # df 원본을 modify 하도록 구현, 원본을 유지하고 싶은 경우 함수 내 주석 참고
-        df_filter_spoiler_reviews(df)
+            # df 원본을 modify 하도록 구현, 원본을 유지하고 싶은 경우 함수 내 주석 참고
+            df_filter_spoiler_reviews(df)
 
-        # 크롤링 결과 CSV 파일로 저장
-        MOVIE_TITLE_CSV = re.sub(r'[^a-zA-Z0-9가-힣.]', '', MOVIE_TITLE_EN)
-        df.to_csv(f"./watcha_reviews_csv/watcha_korean_{MOVIE_TITLE_CSV}_reviews_minimal.csv", index=False)
+            # 크롤링 결과 CSV 파일로 저장
+            MOVIE_TITLE_CSV = re.sub(r'[^a-zA-Z0-9가-힣.]', '', MOVIE_TITLE_EN)
+            df.to_csv(f"./watcha_reviews_csv/watcha_korean_{MOVIE_TITLE_CSV}_reviews_minimal.csv", index=False)
 
-    except Exception as e:
-        print(f"Error processing movie {MOVIE_TITLE_EN} : {e}")
-        continue
+        except Exception as e:
+            print(f"Error processing movie {MOVIE_TITLE_EN} : {e}")
+            continue
 
-# 종료 전 5초간 대기 및 브라우저 종료
-print("Crawling completed. Code execution will finish after this message.")
-time.sleep(5)
-driver.quit()
+    # 종료 전 5초간 대기 및 브라우저 종료
+    print("Crawling completed. Code execution will finish after this message.")
+    time.sleep(5)
+    driver.quit()
 
 #TODO: 영화 제목을 리스트로 구성, 현재 main 부분을 함수화하여 for문으로 여러 영화 크롤링 가능하게 하기 **DONE**
 #TODO: CSS Selector 예외처리 및 각 선택자 변수지정 **DONE**
